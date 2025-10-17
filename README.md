@@ -42,7 +42,9 @@ Spec-Driven Development **flips the script** on traditional software development
 
 ## ⚡ Get Started
 
-### 1. Install Specify CLI
+### 1. Install Specify CLI (This Fork)
+
+Note: This fork’s CLI defaults to templates published under this repository’s Releases (Nick-Helwig/spec-kit, latest). No extra flags or environment variables are required.
 
 Choose your preferred installation method:
 
@@ -51,7 +53,7 @@ Choose your preferred installation method:
 Install once and use everywhere:
 
 ```bash
-uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+uv tool install specify-cli --from git+https://github.com/Nick-Helwig/spec-kit.git
 ```
 
 Then use the tool directly:
@@ -64,7 +66,7 @@ specify check
 To upgrade specify run:
 
 ```bash
-uv tool install specify-cli --force --from git+https://github.com/github/spec-kit.git
+uv tool install specify-cli --force --from git+https://github.com/Nick-Helwig/spec-kit.git
 ```
 
 #### Option 2: One-time Usage
@@ -72,7 +74,7 @@ uv tool install specify-cli --force --from git+https://github.com/github/spec-ki
 Run directly without installing:
 
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init <PROJECT_NAME>
+uvx --from git+https://github.com/Nick-Helwig/spec-kit.git specify init <PROJECT_NAME>
 ```
 
 **Benefits of persistent installation:**
@@ -623,4 +625,3 @@ This project is heavily influenced by and based on the work and research of [Joh
 ## 📄 License
 
 This project is licensed under the terms of the MIT open source license. Please refer to the [LICENSE](./LICENSE) file for the full terms.
-

@@ -7,7 +7,7 @@ This guide shows how to iterate on the `specify` CLI locally without publishing 
 ## 1. Clone and Switch Branches
 
 ```bash
-git clone https://github.com/github/spec-kit.git
+git clone https://github.com/Nick-Helwig/spec-kit.git
 cd spec-kit
 # Work on a feature branch
 git checkout -b your-feature-branch
@@ -60,7 +60,7 @@ You can also point uvx at a specific branch without merging:
 ```bash
 # Push your working branch first
 git push origin your-feature-branch
-uvx --from git+https://github.com/github/spec-kit.git@your-feature-branch specify init demo-branch-test --script ps
+uvx --from git+https://github.com/Nick-Helwig/spec-kit.git@your-feature-branch specify init demo-branch-test --script ps
 ```
 
 ### 4a. Absolute Path uvx (Run From Anywhere)
@@ -165,5 +165,4 @@ rm -rf .venv dist build *.egg-info
 - Update docs and run through Quick Start using your modified CLI
 - Open a PR when satisfied
 - (Optional) Tag a release once changes land in `main`
-
 
