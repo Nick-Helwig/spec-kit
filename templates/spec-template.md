@@ -5,6 +5,25 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Clarifications (Resolved)
+
+<!--
+  Record critical decisions here as they are resolved via /speckit.clarify.
+  Format: "- Q: <question> → A: <final answer> (YYYY-MM-DD)"
+  All critical ambiguities MUST be resolved before planning begins.
+-->
+
+- Q:  → A:  (YYYY-MM-DD)
+
+## Assumptions (Must Validate in Research)
+
+<!--
+  Document any assumptions made to keep momentum. Each assumption MUST be
+  validated in research.md and either confirmed or replaced with a decision.
+-->
+
+- [ASSUMPTION]: 
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -75,6 +94,29 @@
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
 
+## UX Intent & Variants
+
+<!--
+  Describe intended UX patterns at a high level without naming technologies.
+  Variation is allowed between features, but adhere to modern SaaS best
+  practices for layout, spacing, feedback, and states.
+  Detailed tokens, components, and interaction contracts will be finalized in plan.md.
+-->
+
+- Navigation: [sidebar/topbar/breadcrumbs]
+- Layout density: [comfortable/compact]
+- Empty/loading/error states: [describe]
+- Interaction affordances: [hover/focus/pressed/disabled behaviors]
+
+## Microcopy Catalog
+
+<!-- Provide exact strings for key UI surfaces to reduce ambiguity. -->
+
+- Empty state: "[string]"
+- Error state: "[string]"
+- Success toast: "[string]"
+- Primary button: "[string]"
+
 ## Requirements *(mandatory)*
 
 <!--
@@ -114,3 +156,11 @@
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 
+## Definition of Ready — Spec
+
+- [ ] All critical [NEEDS CLARIFICATION] resolved (see Clarifications section)
+- [ ] No ambiguous language (ban: etc., simple, robust, intuitive, flexible, nice)
+- [ ] Success criteria measurable and testable without implementation details
+- [ ] User stories independently testable with acceptance scenarios
+- [ ] Edge cases listed for primary flows
+- [ ] Assumptions recorded for Research validation

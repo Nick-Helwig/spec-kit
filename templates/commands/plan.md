@@ -26,9 +26,13 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
    - Fill Constitution Check section from constitution
    - Evaluate gates (ERROR if violations unjustified)
-   - Phase 0: Generate research.md (resolve all NEEDS CLARIFICATION)
+   - Phase 0: Generate research.md using `templates/research-template.md` (resolve all NEEDS CLARIFICATION)
+     - Include a Design Reference Gallery (8–15 examples). Initial anchors: Linear, Stripe, Figma (variation allowed).
+     - Perform Library/Stack research with citations (≤6 months preferred). Compare ≥2 options and note adoption/compatibility/a11y.
+     - Perform Domain/Market validation and risks; create RT-### decision logs with citations.
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
    - Phase 1: Update agent context by running the agent script
+   - Pin final design system/library and versions with rationale (from research RT-IDs)
    - Re-evaluate Constitution Check post-design
 
 4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
@@ -85,3 +89,9 @@ You **MUST** consider the user input before proceeding (if not empty).
 - Use absolute paths
 - ERROR on gate failures or unresolved clarifications
 
+## Definition of Ready — Pre-Tasks Gate
+
+- [ ] research.md complete with Design Gallery, Library/Stack analysis, Domain validation
+- [ ] Plan decisions linked to RT-IDs (Evidence-to-Decision Map)
+- [ ] Design system/library decision pinned with version and rationale
+- [ ] Component Map complete (100% UI mapped to library components)

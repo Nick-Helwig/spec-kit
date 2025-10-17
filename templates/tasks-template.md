@@ -11,6 +11,20 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+## Agent Execution Contract
+
+- Allowed libraries/versions: [from plan.md, pinned]
+- Forbidden actions: Do NOT create custom UI components if library equivalents exist; do NOT change stack/versions; do NOT invent defaults.
+- Escalation triggers: Any missing spec/plan detail; any unmapped UI element; any blocked dependency → mark task BLOCKED and request clarification.
+- Implementation steps: Each task MUST include exact file paths and concrete actions.
+- Verification: Each user story includes acceptance criteria (Gherkin) and a test/validation plan.
+
+## Traceability Summary
+
+| Task ID | User Story | FR IDs | SC IDs |
+|---------|------------|--------|--------|
+| T###    | US1        | FR-xxx | SC-xxx |
+
 ## Format: `[ID] [P?] [Story] Description`
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
@@ -26,7 +40,7 @@ description: "Task list template for feature implementation"
   ============================================================================
   IMPORTANT: The tasks below are SAMPLE TASKS for illustration purposes only.
   
-  The /speckit.tasks command MUST replace these with actual tasks based on:
+The /speckit.tasks command MUST replace these with actual tasks based on:
   - User stories from spec.md (with their priorities P1, P2, P3...)
   - Feature requirements from plan.md
   - Entities from data-model.md
@@ -247,5 +261,11 @@ With multiple developers:
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 
+## Definition of Ready — Tasks
+
+- [ ] Agent Execution Contract present at top of tasks.md
+- [ ] All tasks follow required format (checkbox, T###, [P?], [US?], file path)
+- [ ] Traceability filled for all tasks (US/FR/SC)
+- [ ] Each user story has independent test criteria and ACs
 
 

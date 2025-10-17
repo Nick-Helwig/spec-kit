@@ -39,3 +39,21 @@
 - Link to relevant resources or documentation
 - Items are numbered sequentially for easy reference
 
+## Ambiguity Lint
+
+- [ ] CHK100 No banned phrases (etc., simple, robust, intuitive, flexible, nice)
+- [ ] CHK101 No TBD/TKTK/placeholder tokens remain
+- [ ] CHK102 All quantitative claims have measurable thresholds
+
+## Visual & UX Coverage
+
+- [ ] CHK110 Design tokens defined (colors, type, spacing, radii, shadows, motion)
+- [ ] CHK111 Component Map complete (100% UI mapped to library components)
+- [ ] CHK112 Interaction contracts documented (events → state → API → feedback)
+- [ ] CHK113 A11y requirements (WCAG 2.2 AA) captured
+
+## Traceability & Research
+
+- [ ] CHK120 US/FR/SC → Tasks mapping present
+- [ ] CHK121 Evidence-to-Decision links (RT-IDs) in plan.md
+- [ ] CHK122 Research citations are ≤ 6 months old (or justified)

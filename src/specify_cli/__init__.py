@@ -485,15 +485,29 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> Tuple[bool, Option
     finally:
         os.chdir(original_cwd)
 
-def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
-    repo_owner = "github"
-    repo_name = "spec-kit"
+def download_template_from_github(
+    ai_assistant: str,
+    download_dir: Path,
+    *,
+    script_type: str = "sh",
+    verbose: bool = True,
+    show_progress: bool = True,
+    client: httpx.Client = None,
+    debug: bool = False,
+    github_token: str = None,
+    repo_owner: str = "github",
+    repo_name: str = "spec-kit",
+    tag: str | None = None,
+) -> Tuple[Path, dict]:
     if client is None:
         client = httpx.Client(verify=ssl_context)
 
     if verbose:
-        console.print("[cyan]Fetching latest release information...[/cyan]")
-    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
+        console.print("[cyan]Fetching release information...[/cyan]")
+    if tag and tag.lower() != "latest":
+        api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/tags/{tag}"
+    else:
+        api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
 
     try:
         response = client.get(
@@ -591,11 +605,26 @@ def download_template_from_github(ai_assistant: str, download_dir: Path, *, scri
         "filename": filename,
         "size": file_size,
         "release": release_data["tag_name"],
-        "asset_url": download_url
+        "asset_url": download_url,
+        "repo": f"{repo_owner}/{repo_name}",
     }
     return zip_path, metadata
 
-def download_and_extract_template(project_path: Path, ai_assistant: str, script_type: str, is_current_dir: bool = False, *, verbose: bool = True, tracker: StepTracker | None = None, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Path:
+def download_and_extract_template(
+    project_path: Path,
+    ai_assistant: str,
+    script_type: str,
+    is_current_dir: bool = False,
+    *,
+    verbose: bool = True,
+    tracker: StepTracker | None = None,
+    client: httpx.Client = None,
+    debug: bool = False,
+    github_token: str = None,
+    repo_owner: str = "github",
+    repo_name: str = "spec-kit",
+    tag: str | None = None,
+) -> Path:
     """Download the latest release and extract it to create a new project.
     Returns project_path. Uses tracker if provided (with keys: fetch, download, extract, cleanup)
     """
@@ -612,7 +641,10 @@ def download_and_extract_template(project_path: Path, ai_assistant: str, script_
             show_progress=(tracker is None),
             client=client,
             debug=debug,
-            github_token=github_token
+            github_token=github_token,
+            repo_owner=repo_owner,
+            repo_name=repo_name,
+            tag=tag,
         )
         if tracker:
             tracker.complete("fetch", f"release {meta['release']} ({meta['size']:,} bytes)")
@@ -967,7 +999,20 @@ def init(
             local_ssl_context = ssl_context if verify else False
             local_client = httpx.Client(verify=local_ssl_context)
 
-            download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+            download_and_extract_template(
+                project_path,
+                selected_ai,
+                selected_script,
+                here,
+                verbose=False,
+                tracker=tracker,
+                client=local_client,
+                debug=debug,
+                github_token=github_token,
+                repo_owner="Nick-Helwig",
+                repo_name="spec-kit",
+                tag=None,
+            )
 
             ensure_executable_scripts(project_path, tracker=tracker)
 
@@ -1123,4 +1168,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

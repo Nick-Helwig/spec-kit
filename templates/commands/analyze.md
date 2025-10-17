@@ -23,6 +23,12 @@ Identify inconsistencies, duplications, ambiguities, and underspecified items ac
 
 **Constitution Authority**: The project constitution (`/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/analyze`.
 
+Additional checks for upgraded flow:
+- Enforce ambiguity lint (ban: etc., simple, robust, intuitive, flexible, nice)
+- Require 100% UI component mapping coverage in plan (Component Map)
+- Verify research citations freshness (≤ 6 months or justified)
+- Verify Agent Execution Contract present in tasks.md
+
 ## Execution Steps
 
 ### 1. Initialize Analysis Context
@@ -87,7 +93,7 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 
 #### B. Ambiguity Detection
 
-- Flag vague adjectives (fast, scalable, secure, intuitive, robust) lacking measurable criteria
+- Flag vague adjectives (fast, scalable, secure, intuitive, robust, simple, nice, flexible) lacking measurable criteria
 - Flag unresolved placeholders (TODO, TKTK, ???, `<placeholder>`, etc.)
 
 #### C. Underspecification
@@ -106,6 +112,8 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Requirements with zero associated tasks
 - Tasks with no mapped requirement/story
 - Non-functional requirements not reflected in tasks (e.g., performance, security)
+- UI elements in plan without mapped library components (Component Map < 100%)
+- Missing Agent Execution Contract or Traceability table in tasks.md
 
 #### F. Inconsistency
 
@@ -185,4 +193,3 @@ Ask the user: "Would you like me to suggest concrete remediation edits for the t
 ## Context
 
 {ARGS}
-

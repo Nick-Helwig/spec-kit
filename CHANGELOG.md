@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.0.20] - 2025-10-14
 
+## [0.0.21] - 2025-10-17
+
+### Added
+
+- Template source overrides for CLI initialization:
+  - `--template-repo owner/repo` (e.g., `Nick-Helwig/spec-kit`)
+  - `--template-tag vX.Y.Z` (optional; defaults to latest)
+  - Environment variables: `SPECIFY_TEMPLATE_REPO`, `SPECIFY_TEMPLATE_TAG`
+  These allow using a forked Spec‑Kit repository for templates while preserving asset naming.
+
 ### Added
 
 - **Intelligent Branch Naming**: `create-new-feature` scripts now support `--short-name` parameter for custom branch names
@@ -166,4 +176,9 @@ N/A
 ### Changed
 
 N/A
+## [0.0.22] - 2025-10-17
 
+### Changed
+
+- CLI now defaults to pulling template releases from this repository (Nick-Helwig/spec-kit) using the latest release tag. No additional flags or environment variables are required.
+- Removed previously added `--template-repo` and `--template-tag` options to keep the flow simple for this fork.

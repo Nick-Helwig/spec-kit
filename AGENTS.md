@@ -327,3 +327,69 @@ When adding new agents:
 
 *This documentation should be updated whenever new agents are added to maintain accuracy and completeness.*
 
+## Codex-Centric SDD Flow (Conversation + Sub-Agent Implementor)
+
+### Mission
+Use Codex as the conversational partner to guide all Spec‑Driven Development phases up to implementation. When tasks are ready, hand off to a dedicated sub‑agent implementor that executes tasks.md under strict contracts and escalates any ambiguity instead of guessing.
+
+### Operating Principles
+- Specs are the source of truth; code is their output.
+- Zero ambiguity at phase gates (Definition of Ready for Spec, Plan, Tasks).
+- Deep research grounds decisions with citations and recency checks.
+- UI follows modern SaaS best practices with variation allowed (anchors: Linear, Stripe, Figma); design system and libraries are chosen in Plan after research and pinned with versions and rationale.
+- Implementor must not invent defaults or components; any gap → BLOCKED and escalated.
+
+### Workflow and Artifacts
+
+Commands map to templates and DOR gates:
+
+| Command | Template | Key Outputs | Gate (DOR) |
+|---------|----------|-------------|------------|
+| /speckit.constitution | constitution.md | .specify/memory/constitution.md | Principles set |
+| /speckit.specify | spec-template.md | specs/<feature>/spec.md (incl. Clarifications, Assumptions, UX Intent, Microcopy) | No banned phrases; measurable SCs; edge cases listed |
+| /speckit.clarify | clarify guide | Updates spec.md (Clarifications Resolved) | All critical [NEEDS CLARIFICATION] resolved |
+| /speckit.plan | plan-template.md + research-template.md | plan.md, research.md, data-model.md, contracts/, quickstart.md | Library decision pinned; tokens, component map 100% coverage; interaction contracts; evidence links (RT-IDs) |
+| /speckit.tasks | tasks-template.md | tasks.md (Agent Execution Contract, Traceability Summary) | Format compliance; traceability complete |
+| /speckit.checklist | checklist-template.md | checklists/* | Ambiguity lint, UI coverage, research freshness |
+| /speckit.analyze | analyze guide | Analysis report | All gates PASS → Ready |
+
+### Conversation with Codex (Designer Role)
+- Lead each phase with a short synthesis and ≤5 decisive questions.
+- Record answers in spec.md Clarifications (Resolved); move assumptions to research for validation.
+- Keep stack undecided until Plan; choose via Decision Matrix using research evidence.
+
+### Research Policy
+- Perform live web research with authoritative sources; prefer citations ≤6 months old.
+- Build a Design Reference Gallery (8–15 examples) starting with: Linear, Stripe, Figma; allow visual variation while enforcing a11y and performance budgets.
+- Maintain Evidence‑to‑Decision mapping (RT‑IDs) and pin final decisions in Plan.
+
+### Implementor Sub‑Agent (Tasks Executor)
+Input: tasks.md, plan.md, research.md, data-model.md, contracts/, quickstart.md.
+
+Contract (must follow, no autonomy):
+- Allowed: Only libraries and versions pinned in plan.md.
+- Forbidden: Creating custom UI when a library equivalent exists; changing stack/versions; inventing defaults.
+- Escalation: Any missing plan/spec detail, unmapped UI element, or blocked dependency → mark BLOCKED and prompt for clarification.
+- Execution: Follow exact file paths; respect parallel markers [P]; adhere to TDD instructions when present.
+- Reporting: Emit JSON status per task (DONE|BLOCKED|FAILED|SKIPPED); stop on first BLOCKED and request waiver/clarification.
+- Hygiene: Update tasks.md checkboxes on completion; do not modify spec/plan without an approved change.
+
+Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). This file should restate the Agent Execution Contract and reporting format.
+
+### UI/UX Requirements (Plan-Level)
+- Visual tokens: colors, typography, spacing, radii, shadows, motion, breakpoints.
+- Component Map: 100% of UI mapped to library components/variants.
+- Interaction Contracts: event → state → API → feedback; latency and error budgets; WCAG 2.2 AA.
+- Variation allowed per feature; stay consistent with modern SaaS patterns.
+
+### Export & Readiness
+Ready for implementor when:
+- Spec DOR, Plan DOR, Tasks DOR all PASS
+- Research completed with citations and RT‑IDs
+- Analyze report shows no CRITICAL/HIGH issues
+
+Bundle should include: specs/<feature>/* and (optionally) agents/codex/agents.md.
+
+### Starting and Handoff Prompts
+- Start: “/speckit.constitution …” then “/speckit.specify …”
+- Handoff: “/speckit.implement” to spawn the implementor sub‑agent following tasks.md under the Agent Execution Contract.

@@ -40,6 +40,8 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
    - Final Phase: Polish & cross-cutting concerns
+   - Prepend an "Agent Execution Contract" section: Allowed libraries/versions; Forbidden actions (no custom components if library exists; no stack changes; no invented defaults); Escalation triggers; Verification and AC/Test plan requirements.
+   - Add a "Traceability Summary" table (US/FR/SC → T### mapping)
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
    - Dependencies section showing story completion order
@@ -129,5 +131,4 @@ Every task MUST strictly follow this format:
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
-
 

@@ -50,13 +50,10 @@ Given that feature description, do this:
        If empty: ERROR "No feature description provided"
     2. Extract key concepts from description
        Identify: actors, actions, data, constraints
-    3. For unclear aspects:
-       - Make informed guesses based on context and industry standards
-       - Only mark with [NEEDS CLARIFICATION: specific question] if:
-         - The choice significantly impacts feature scope or user experience
-         - Multiple reasonable interpretations exist with different implications
-         - No reasonable default exists
-       - **LIMIT: Maximum 3 [NEEDS CLARIFICATION] markers total**
+    3. For unclear aspects (no guessed defaults for core behavior/UX):
+       - Prefer marking with [NEEDS CLARIFICATION: specific question] or add to Assumptions for later validation in Research
+       - Only infer defaults for trivial, low-impact details and record as Assumptions
+       - **LIMIT: Maximum 5 [NEEDS CLARIFICATION] markers total**
        - Prioritize clarifications by impact: scope > security/privacy > user experience > technical details
     4. Fill User Scenarios & Testing section
        If no clear user flow: ERROR "Cannot determine user scenarios"
@@ -86,13 +83,14 @@ Given that feature description, do this:
       ## Content Quality
       
       - [ ] No implementation details (languages, frameworks, APIs)
+      - [ ] No banned ambiguous phrasing (etc., simple, robust, intuitive, flexible, nice)
       - [ ] Focused on user value and business needs
       - [ ] Written for non-technical stakeholders
       - [ ] All mandatory sections completed
       
       ## Requirement Completeness
       
-      - [ ] No [NEEDS CLARIFICATION] markers remain
+      - [ ] No [NEEDS CLARIFICATION] markers remain (or explicitly deferred with rationale)
       - [ ] Requirements are testable and unambiguous
       - [ ] Success criteria are measurable
       - [ ] Success criteria are technology-agnostic (no implementation details)
@@ -230,4 +228,3 @@ Success criteria must be:
 - "Database can handle 1000 TPS" (implementation detail, use user-facing metric)
 - "React components render efficiently" (framework-specific)
 - "Redis cache hit rate above 80%" (technology-specific)
-

@@ -33,6 +33,57 @@
 
 [Gates determined based on constitution file]
 
+## Design System & Library Decision Matrix
+
+<!--
+  Decide libraries only after research. Compare at least 2–3 options.
+  Do not hard-code choices here without evidence in research.md.
+-->
+
+| Option | UI Library | Version | Pros | Cons | A11y | Theming | Ecosystem | Risk Notes |
+|--------|------------|---------|------|------|------|---------|-----------|-----------|
+| A      |            |         |      |      |      |         |           |           |
+| B      |            |         |      |      |      |         |           |           |
+| C      |            |         |      |      |      |         |           |           |
+
+Final decision (post-research): [Chosen option] — rationale: [why] (pinned version)
+
+## Visual Design System (Tokens)
+
+- Colors (roles): [primary, surface, text, success, warning, danger]
+- Typography: [font stack, scale, weights]
+- Spacing: [scale]
+- Radii: [scale]
+- Shadows/Elevation: [levels]
+- Motion: [durations, easing]
+- Breakpoints/Grid: [xs, sm, md, lg, xl; container widths]
+
+## Component Map (Library → Feature UI)
+
+<!-- Map every UI element to a concrete library component and variant. -->
+
+| Feature Surface | Library Component | Variant/Props | Notes |
+|-----------------|-------------------|---------------|-------|
+| Navbar          |                   |               |       |
+| Sidebar         |                   |               |       |
+| Table/List      |                   |               |       |
+| Dialog/Modal    |                   |               |       |
+| Form Inputs     |                   |               |       |
+| Toast/Alert     |                   |               |       |
+
+## Interaction Contracts
+
+For each core flow, define:
+- Event source → state change → API call → UI feedback sequence
+- Latency budgets: [e.g., optimistic UI ≤100ms, p95 server 300ms]
+- Error handling: [retry/backoff, inline errors, toasts]
+- Accessibility: [focus order, keyboard shortcuts, ARIA labels]
+
+## Evidence-to-Decision Map
+
+Link each plan decision to research tasks (RT-IDs):
+- Decision: [what] → Evidence: RT-###, RT-###
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -103,3 +154,10 @@ directories captured above]
 | [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
 | [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
 
+## Definition of Ready — Plan
+
+- [ ] Design system/library decision pinned with version + rationale (see matrix)
+- [ ] Visual tokens defined (colors, type, spacing, radii, shadows, motion)
+- [ ] 100% of UI mapped to library components (Component Map complete)
+- [ ] Interaction contracts documented with latency/a11y/error budgets
+- [ ] Evidence links (RT-IDs) present for decisions

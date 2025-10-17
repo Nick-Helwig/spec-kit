@@ -165,7 +165,15 @@ Execution steps:
    - Sections touched (list names).
    - Coverage summary table listing each taxonomy category with Status: Resolved (was Partial/Missing and addressed), Deferred (exceeds question quota or better suited for planning), Clear (already sufficient), Outstanding (still Partial/Missing but low impact).
    - If any Outstanding or Deferred remain, recommend whether to proceed to `/speckit.plan` or run `/speckit.clarify` again later post-plan.
-   - Suggested next command.
+ - Suggested next command.
+
+## Definition of Ready — Spec Gate
+
+Before proceeding to planning, ensure:
+- [ ] All critical [NEEDS CLARIFICATION] markers are resolved in spec.md
+- [ ] Clarifications recorded under "Clarifications (Resolved)"
+- [ ] No banned ambiguous phrasing remains (etc., simple, robust, intuitive, flexible, nice)
+- [ ] Assumptions listed for Research validation
 
 Behavior rules:
 - If no meaningful ambiguities found (or all potential questions would be low-impact), respond: "No critical ambiguities detected worth formal clarification." and suggest proceeding.
@@ -177,4 +185,3 @@ Behavior rules:
  - If quota reached with unresolved high-impact categories remaining, explicitly flag them under Deferred with rationale.
 
 Context for prioritization: {ARGS}
-

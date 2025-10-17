@@ -1,0 +1,146 @@
+# Codex Implementor Agent Guide
+
+Purpose: This document instructs the Codex implementor sub‑agent to execute a Spec‑Kit feature using `tasks.md`, under strict contracts that prevent autonomous, ambiguous decisions.
+
+## Inputs
+
+- Feature directory: `specs/<feature>/`
+- Required files:
+  - `spec.md` (requirements; already gated via Spec DOR)
+  - `plan.md` (design system, tokens, component map, interaction contracts)
+  - `tasks.md` (Actionable task checklist; Agent Execution Contract at top)
+- Optional files:
+  - `research.md` (evidence RT‑IDs and citations)
+  - `data-model.md`
+  - `contracts/` (OpenAPI/GraphQL and other interface specs)
+  - `quickstart.md`
+
+## Non‑Negotiable Contract
+
+- Allowed:
+  - Use only the libraries, versions, and stack pinned in `plan.md`.
+  - Edit exactly the files named in each task’s description. Create new files only if explicitly described.
+  - Follow TDD where test tasks exist: write/execute tests before implementation.
+
+- Forbidden:
+  - Creating custom UI components if an equivalent exists in the chosen UI library.
+  - Changing stack, libraries, or versions without an explicit upstream Plan update.
+  - “Filling in” missing requirements or defaults. Do not invent behavior, copy, or visuals.
+
+- Escalation (BLOCKED): Immediately stop the current task and emit a BLOCKED report when any of the following occur:
+  - A task references an unmapped UI element (not present in Component Map).
+  - A required decision/detail is missing from `spec.md` or `plan.md`.
+  - Conflicts between spec/plan/tasks or between contracts and implementation.
+  - Insufficient permissions or missing local tools to proceed.
+
+## Execution Protocol
+
+1) Pre‑flight checks
+- Load `plan.md` and verify Plan DOR items:
+  - Design system/library decision pinned (with versions)
+  - Visual tokens present (colors/type/spacing/radii/shadows/motion/breakpoints)
+  - Component Map covers 100% of UI surfaces
+  - Interaction contracts and budgets defined
+- Load `tasks.md` and verify Tasks DOR items:
+  - Agent Execution Contract present
+  - All tasks follow format: `- [ ] T### [P?] [US?] Description with file path`
+  - Traceability table present (US/FR/SC → T###)
+  - If any pre‑flight DOR check fails → emit BLOCKED immediately
+
+2) Parse tasks
+- Identify phases: Setup, Foundational, Story phases (US1, US2, ...), Polish
+- Within each phase:
+  - Respect dependency order; execute sequential tasks in order
+  - Tasks marked `[P]` may run in parallel only if file paths do not conflict
+  - Test tasks (if present) run before implementation tasks
+
+3) Task lifecycle
+- For each task:
+  - Set status RUNNING; record `started_at` timestamp
+  - Perform the exact actions with the specified file path(s)
+  - If tests are present for this story:
+    - Ensure tests initially fail (when appropriate)
+    - Implement code; re‑run tests; expect pass
+  - On success:
+    - Mark the checkbox in `tasks.md` (change `- [ ]` to `- [X]`)
+    - Set status DONE; record `ended_at`
+  - On failure:
+    - Set status FAILED; capture error context; stop unless explicitly allowed to continue
+  - On missing context, decisions, or contradictions:
+    - Set status BLOCKED with `blocked_reason`; stop and request clarification
+
+4) Phase gates
+- After each phase, perform a quick validation:
+  - Build or tests if present in plan/tasks
+  - Basic lint/format if configured
+  - If validation fails: STOP and emit FAILED or BLOCKED depending on cause
+
+## Reporting Format
+
+Emit machine‑readable JSON for each task (newline‑delimited is acceptable) and a final summary.
+
+Per‑task JSON schema:
+
+```json
+{
+  "task_id": "T012",
+  "title": "[US1] Implement UserService in src/services/user_service.ts",
+  "phase": "User Story 1",
+  "story": "US1",
+  "status": "DONE | BLOCKED | FAILED | SKIPPED",
+  "started_at": "2025-01-15T12:34:56Z",
+  "ended_at": "2025-01-15T12:36:12Z",
+  "duration_ms": 76000,
+  "files_changed": ["src/services/user_service.ts", "tests/integration/user_service.test.ts"],
+  "commands_run": ["npm test -w frontend -- user_service"],
+  "stdout_sample": "...first 2KB...",
+  "stderr_sample": "",
+  "blocked_reason": "",
+  "notes": ""
+}
+```
+
+Final session summary JSON:
+
+```json
+{
+  "feature": "001-sample-feature",
+  "phases": [
+    {"name": "Setup", "done": 3, "failed": 0, "blocked": 0, "skipped": 0},
+    {"name": "Foundational", "done": 5, "failed": 0, "blocked": 0, "skipped": 0}
+  ],
+  "totals": {"done": 23, "failed": 1, "blocked": 1, "skipped": 0},
+  "stopped_on": "T044",
+  "stop_cause": "BLOCKED",
+  "next_action": "Await clarification or waiver"
+}
+```
+
+Notes:
+- Truncate stdout/stderr samples to avoid large payloads
+- Do not include secrets or tokens
+- Keep file paths repository‑relative
+
+## UI/UX Compliance (from Plan)
+
+- Use only mapped components from the Component Map, with the specified variants/props
+- Apply design tokens (colors/typography/spacing/radii/shadows/motion) when styling
+- Follow Interaction Contracts (event → state → API → feedback), including latency and error feedback requirements
+- Accessibility: target WCAG 2.2 AA (focus order, keyboard navigation, ARIA labels, contrast)
+
+## Safety & Scope
+
+- Never modify `spec.md`, `plan.md`, `research.md` directly. If a change is required, emit BLOCKED with a suggested upstream edit.
+- Do not delete or rename unrelated files unless explicitly specified in a task.
+- Prefer minimal, auditable changes aligned to each task.
+
+## Examples of BLOCKED Escalations
+
+- "Task T021 references a Modal but no Modal component mapping exists in Component Map. Please add mapping or adjust task."
+- "Task T030 requires color tokens for warning state; tokens missing in Plan. Please define in Visual Design System."
+- "Task T045 depends on endpoint /v1/items but contracts/OpenAPI does not define it. Please update contracts or adjust task."
+
+## Start Command
+
+Run the higher‑level command documented at `templates/commands/implement.md` (e.g., `/speckit.implement`). This implementor must obey this guide while processing `tasks.md`.
+
