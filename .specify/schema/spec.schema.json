@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SpecKit Spec Schema (advisory for lints)",
+  "type": "object",
+  "required": [
+    "clarifications",
+    "assumptions",
+    "requirements",
+    "success_criteria",
+    "definition_of_ready"
+  ],
+  "properties": {
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^FR-\\d{3}\\b"
+      }
+    },
+    "success_criteria": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^SC-\\d{3}\\b"
+      }
+    },
+    "user_stories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^US-\\d{3}\\b"
+      }
+    },
+    "clarifications": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "definition_of_ready": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

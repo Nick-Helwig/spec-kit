@@ -1,0 +1,25 @@
+
+# Spec‑Kit lint rules (regex based)
+ids:
+  user_story: '^US-\d{3}\b'
+  functional_requirement: '^FR-\d{3}\b'
+  success_criterion: '^SC-\d{3}\b'
+  research_task: '^RT-\d+\b'
+tasks:
+  line_format: '^- \[[ X]\] T\d{3}\s(\[P\d?\]\s)?\[US-\d{3}\]\s.+'
+headings_required:
+  spec:
+    - '^##\s+Clarifications \(Resolved\)'
+    - '^##\s+Assumptions \(Must Validate in Research\)'
+    - '^##\s+Requirements'
+    - '^##\s+Success Criteria'
+    - '^##\s+Definition of Ready — Spec'
+  plan:
+    - '^##\s+Evidence-to-Decision Map'
+    - '^##\s+Component Map'
+    - '^##\s+Interaction Contracts'
+    - '^##\s+Definition of Ready — Plan'
+  tasks:
+    - '^##\s+Agent Execution Contract'
+    - '^##\s+Traceability Summary'
+    - '^##\s+Definition of Ready — Tasks'
