@@ -139,7 +139,7 @@ Use **`/speckit.implement`** to run implementation **one task at a time**. Each 
 Every run delegates that single task to the implementor sub-agent, collects its JSON log, and prepares the same Task ID for code review.
 
 > **Codex setup reminder**  
-> `specify init --ai codex` now rewrites `.codex/config.toml` so the Codex CLI launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override via `CODEX_SUBAGENTS_REPO`), injects `env = { CODEX_HOME = "<project>/.codex" }`, and passes `--agents-dir <project>/agents`, exactly as required by the codex-subagents README. During init, you’ll be prompted once per machine to run `.codex/scripts/bootstrap-subagents.{sh,ps1}`; rerun the script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
+> `specify init --ai codex` now rewrites `.codex/config.toml` so the Codex CLI launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override via `CODEX_SUBAGENTS_REPO`), injects `env = { CODEX_HOME = "<project>/.codex" }`, and passes `--agents-dir <project>/agents`, exactly as required by the codex-subagents README. It also links your global Codex credentials from `${CODEX_GLOBAL_HOME:-~/.codex}/auth.json` into the project so sub-agents share the same login. During init, you’ll be prompted once per machine to run `.codex/scripts/bootstrap-subagents.{sh,ps1}`; rerun the script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
 
 > **Codex orchestrator entry point**  
 > Route all Codex CLI work through the orchestrator persona located at `agents/orchestrator.md` so the Spec Kit gates stay intact:  
@@ -627,7 +627,7 @@ Once ready, use the `/speckit.implement` command to run implementation **one Tas
 /speckit.implement T123      # optional: force a specific task
 ```
 
-> **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists locally and `.codex/config.toml` pins `env = { CODEX_HOME = "<project>/.codex" }` plus `--agents-dir <project>/agents`. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
+> **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists locally and `.codex/config.toml` pins `env = { CODEX_HOME = "<project>/.codex" }` plus `--agents-dir <project>/agents`. The CLI automatically links `${CODEX_GLOBAL_HOME:-~/.codex}/auth.json` into the project so every sub-agent inherits your global login. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
 
 Each invocation of `/speckit.implement` will:
 - Validate that all prerequisites are in place (constitution, spec, plan, tasks) and that the target Task ID is unchecked.

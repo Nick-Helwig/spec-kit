@@ -428,6 +428,60 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
         return False
 
 
+def link_codex_auth_file(project_path: Path) -> None:
+    """Ensure project .codex/auth.json points at the global Codex auth file."""
+    codex_home = project_path / ".codex"
+    if not codex_home.exists():
+        return
+
+    override_home = os.environ.get("CODEX_GLOBAL_HOME", "").strip()
+    global_home = Path(override_home).expanduser() if override_home else Path.home() / ".codex"
+    global_auth = global_home / "auth.json"
+    if not global_auth.exists():
+        console.print(
+            f"[yellow]Warning:[/yellow] Global Codex auth not found at [cyan]{global_auth}[/cyan]. "
+            "Run `codex login` once to generate it."
+        )
+        return
+
+    project_auth = codex_home / "auth.json"
+
+    def _already_linked() -> bool:
+        try:
+            return project_auth.is_symlink() and project_auth.resolve() == global_auth.resolve()
+        except OSError:
+            return False
+
+    if _already_linked():
+        return
+
+    if project_auth.exists() or project_auth.is_symlink():
+        try:
+            project_auth.unlink()
+        except OSError as exc:
+            console.print(f"[yellow]Warning:[/yellow] Could not replace {project_auth}: {exc}")
+            return
+
+    try:
+        os.symlink(global_auth, project_auth)
+        console.print(
+            f"[green]Linked[/green] project Codex auth to [cyan]{global_auth}[/cyan] "
+            f"(via [cyan]{project_auth}[/cyan])."
+        )
+        return
+    except (OSError, NotImplementedError):
+        pass
+
+    try:
+        shutil.copy2(global_auth, project_auth)
+        console.print(
+            f"[yellow]Note:[/yellow] Symlinks unsupported; copied Codex auth to "
+            f"[cyan]{project_auth}[/cyan]. Keep it in sync manually if credentials rotate."
+        )
+    except OSError as exc:
+        console.print(f"[yellow]Warning:[/yellow] Failed to copy Codex auth to {project_auth}: {exc}")
+
+
 def maybe_install_codex_subagents(project_path: Path, server_js: Path) -> str:
     """Optionally bootstrap the codex-subagents MCP server when missing."""
     if server_js.exists():
@@ -1195,6 +1249,7 @@ def init(
         codex_server_js_path = Path(os.path.abspath(str(get_codex_server_js().expanduser())))
         codex_config_updated = configure_codex_mcp_settings(project_path, server_js=codex_server_js_path)
         codex_install_status = maybe_install_codex_subagents(project_path, codex_server_js_path)
+        link_codex_auth_file(project_path)
         if not codex_config_updated:
             console.print(
                 f"[yellow]Warning:[/yellow] Unable to update .codex/config.toml automatically. "
