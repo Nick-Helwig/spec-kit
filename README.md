@@ -136,7 +136,7 @@ Use **`/speckit.implement`** to execute all tasks and build your feature accordi
 ```
 
 > **Codex setup reminder**  
-> Clone [leonardsellem/codex-subagents-mcp](https://github.com/leonardsellem/codex-subagents-mcp) into `~/.codex/subagents/codex-subagents-mcp` (or set `CODEX_SUBAGENTS_REPO`), then run `.codex/scripts/bootstrap-subagents.sh` (or the PowerShell variant) once per machine to install/build the MCP server before delegating work.
+> `specify init --ai codex` now rewrites `.codex/config.toml` to launch the codex-subagents MCP server directly and offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists locally (override via `CODEX_SUBAGENTS_REPO`). Rerun the bootstrap script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
 
 ### 7. Run the mandatory code review
 
@@ -608,7 +608,7 @@ Once ready, use the `/speckit.implement` command to execute your implementation 
 /speckit.implement
 ```
 
-> **One-time Codex setup:** Clone `https://github.com/leonardsellem/codex-subagents-mcp.git` to `~/.codex/subagents/codex-subagents-mcp` (override with `CODEX_SUBAGENTS_REPO`) and run `.codex/scripts/bootstrap-subagents.sh` (or the PowerShell variant) so the MCP sub-agent server is installed locally. Rerun with `--force` after pulling upstream changes.
+> **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists on your machine. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
 
 The `/speckit.implement` command will:
 - Validate that all prerequisites are in place (constitution, spec, plan, and tasks)

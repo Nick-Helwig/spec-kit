@@ -6,6 +6,7 @@ CODEX_HOME="$(cd "${SCRIPT_DIR}/.." && pwd)"
 NODE_BIN="${NODE_BIN:-node}"
 NPM_BIN="${NPM_BIN:-npm}"
 REPO_DIR="${CODEX_SUBAGENTS_REPO:-$HOME/.codex/subagents/codex-subagents-mcp}"
+REPO_URL="${CODEX_SUBAGENTS_REPO_URL:-https://github.com/leonardsellem/codex-subagents-mcp.git}"
 FORCE=0
 
 if [[ "${1:-}" == "--force" ]]; then
@@ -22,14 +23,39 @@ if ! command -v "$NPM_BIN" >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -d "$REPO_DIR" ]]; then
-  cat >&2 <<EOF
-[codex-subagents] Repository not found at $REPO_DIR
-Clone it (or set CODEX_SUBAGENTS_REPO) before running this script:
-  git clone https://github.com/leonardsellem/codex-subagents-mcp "$REPO_DIR"
+ensure_repo() {
+  if [[ -d "$REPO_DIR/.git" ]]; then
+    return
+  fi
+
+  if [[ -e "$REPO_DIR" && ! -d "$REPO_DIR" ]]; then
+    echo "[codex-subagents] $REPO_DIR exists but is not a directory. Remove it or set CODEX_SUBAGENTS_REPO." >&2
+    exit 1
+  fi
+
+  if [[ -d "$REPO_DIR" && ! -d "$REPO_DIR/.git" ]]; then
+    echo "[codex-subagents] $REPO_DIR exists but is not a git repo. Remove or point CODEX_SUBAGENTS_REPO elsewhere." >&2
+    exit 1
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    cat >&2 <<EOF
+[codex-subagents] git is required to clone codex-subagents-mcp automatically.
+Install git or clone the repo manually into:
+  $REPO_DIR
 EOF
-  exit 1
-fi
+    exit 1
+  fi
+
+  mkdir -p "$(dirname "$REPO_DIR")"
+  echo "[codex-subagents] Cloning codex-subagents-mcp into $REPO_DIR"
+  if ! git clone "$REPO_URL" "$REPO_DIR"; then
+    echo "[codex-subagents] git clone failed. Clone manually and rerun." >&2
+    exit 1
+  fi
+}
+
+ensure_repo
 
 if [[ $FORCE -eq 1 ]]; then
   rm -rf "$REPO_DIR/node_modules" "$REPO_DIR/dist"

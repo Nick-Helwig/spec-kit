@@ -6,6 +6,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $nodeBin = if ($env:NODE_BIN) { $env:NODE_BIN } else { "node" }
 $npmBin = if ($env:NPM_BIN) { $env:NPM_BIN } else { "npm" }
 $repoDir = if ($env:CODEX_SUBAGENTS_REPO) { $env:CODEX_SUBAGENTS_REPO } else { Join-Path $HOME ".codex/subagents/codex-subagents-mcp" }
+$repoUrl = if ($env:CODEX_SUBAGENTS_REPO_URL) { $env:CODEX_SUBAGENTS_REPO_URL } else { "https://github.com/leonardsellem/codex-subagents-mcp.git" }
 $force = $false
 if ($args.Length -gt 0 -and $args[0] -eq "--force") {
     $force = $true
@@ -19,9 +20,33 @@ if (-not (Get-Command $npmBin -ErrorAction SilentlyContinue)) {
     Write-Error "[codex-subagents] npm is required."
 }
 
-if (-not (Test-Path $repoDir)) {
-    Write-Error "[codex-subagents] Repository not found at $repoDir. Clone https://github.com/leonardsellem/codex-subagents-mcp there (or set CODEX_SUBAGENTS_REPO) first."
+function Ensure-Repo {
+    $gitDir = Join-Path $repoDir ".git"
+    if (Test-Path $gitDir) {
+        return
+    }
+
+    if ((Test-Path $repoDir) -and (-not (Test-Path $gitDir))) {
+        Write-Error "[codex-subagents] $repoDir exists but is not a git repo. Remove it or set CODEX_SUBAGENTS_REPO."
+    }
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Error "[codex-subagents] git is required to clone codex-subagents-mcp automatically."
+    }
+
+    $parentDir = Split-Path -Parent $repoDir
+    if (-not (Test-Path $parentDir)) {
+        New-Item -ItemType Directory -Path $parentDir | Out-Null
+    }
+
+    Write-Host "[codex-subagents] Cloning codex-subagents-mcp into $repoDir"
+    git clone $repoUrl $repoDir | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "[codex-subagents] git clone failed. Clone manually and rerun."
+    }
 }
+
+Ensure-Repo
 
 if ($force) {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $repoDir "node_modules")

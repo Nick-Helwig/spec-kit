@@ -25,6 +25,7 @@ Or install globally:
 """
 
 import os
+import re
 import subprocess
 import sys
 import zipfile
@@ -342,6 +343,138 @@ def select_with_arrows(options: dict, prompt_text: str = "Select an option", def
 
 console = Console()
 
+CODEX_SUBAGENT_REPO_DEFAULT = Path.home() / ".codex" / "subagents" / "codex-subagents-mcp"
+CODEX_CONFIG_SECTION_PATTERN = re.compile(r"(?ms)^\[mcp_servers\.subagents\][^\[]*")
+
+
+def get_codex_subagents_repo() -> Path:
+    """Return the codex-subagents checkout path, honoring CODEX_SUBAGENTS_REPO."""
+    override = os.environ.get("CODEX_SUBAGENTS_REPO", "").strip()
+    return Path(override).expanduser() if override else CODEX_SUBAGENT_REPO_DEFAULT
+
+
+def get_codex_server_js() -> Path:
+    """Absolute path to the compiled codex-subagents MCP server entrypoint."""
+    return get_codex_subagents_repo() / "dist" / "codex-subagents.mcp.js"
+
+
+def _codex_agents_dir(project_path: Path) -> Path:
+    """Absolute path to the project's .codex/agents directory."""
+    return (project_path / ".codex" / "agents").resolve()
+
+
+def _toml_escape(value: str) -> str:
+    """Escape a string for safe inclusion in TOML double-quoted values."""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None = None) -> bool:
+    """Rewrite the MCP server section to launch codex-subagents directly."""
+    config_path = project_path / ".codex" / "config.toml"
+    if not config_path.exists():
+        return False
+
+    try:
+        config_text = config_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        console.print(f"[yellow]Warning:[/yellow] Could not read {config_path}: {exc}")
+        return False
+
+    resolved_server = Path(os.path.abspath(str((server_js or get_codex_server_js()).expanduser())))
+    agents_dir = Path(os.path.abspath(str(_codex_agents_dir(project_path))))
+
+    server_str = _toml_escape(resolved_server.as_posix())
+    agents_str = _toml_escape(agents_dir.as_posix())
+
+    if os.name == "nt":
+        command = "node"
+        args = [
+            server_str,
+            "--agents-dir",
+            agents_str,
+        ]
+    else:
+        command = "/usr/bin/env"
+        args = [
+            "node",
+            server_str,
+            "--agents-dir",
+            agents_str,
+        ]
+
+    args_block = ",\n".join(f'  "{arg}"' for arg in args)
+    new_section = (
+        "[mcp_servers.subagents]\n"
+        f'command = "{_toml_escape(command)}"\n'
+        "args = [\n"
+        f"{args_block}\n"
+        "]\n"
+    )
+
+    if CODEX_CONFIG_SECTION_PATTERN.search(config_text):
+        new_text = CODEX_CONFIG_SECTION_PATTERN.sub(new_section + "\n", config_text)
+    else:
+        new_text = config_text.rstrip() + "\n\n" + new_section + "\n"
+
+    try:
+        config_path.write_text(new_text, encoding="utf-8")
+        return True
+    except OSError as exc:
+        console.print(f"[yellow]Warning:[/yellow] Could not write {config_path}: {exc}")
+        return False
+
+
+def maybe_install_codex_subagents(project_path: Path, server_js: Path) -> str:
+    """Optionally bootstrap the codex-subagents MCP server when missing."""
+    if server_js.exists():
+        return "already-installed"
+
+    script_dir = project_path / ".codex" / "scripts"
+    if not sys.stdin.isatty():
+        console.print(
+            Panel(
+                f"Codex sub-agent MCP server not found at:\n[cyan]{server_js}[/cyan]\n\n"
+                "Run the bootstrap script manually when you have interactive access:",
+                title="[yellow]Codex Sub-Agents[/yellow]",
+                border_style="yellow",
+            )
+        )
+        return "non-interactive"
+
+    console.print()
+    console.print(
+        Panel(
+            f"Codex sub-agent MCP server was not detected at:\n[cyan]{server_js}[/cyan]\n\n"
+            "Specify CLI can clone/build it now (recommended). This runs npm install/build once per machine "
+            "using the bootstrap script bundled in your project.",
+            title="[yellow]Install Codex Sub-Agents[/yellow]",
+            border_style="yellow",
+        )
+    )
+
+    if not typer.confirm("Install the codex-subagents MCP server now?", default=True):
+        return "skipped"
+
+    if os.name == "nt":
+        script_path = script_dir / "bootstrap-subagents.ps1"
+        if not script_path.exists():
+            console.print(f"[red]Error:[/red] Missing {script_path}.")
+            return "missing-script"
+        cmd = ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script_path)]
+    else:
+        script_path = script_dir / "bootstrap-subagents.sh"
+        if not script_path.exists():
+            console.print(f"[red]Error:[/red] Missing {script_path}.")
+            return "missing-script"
+        cmd = ["bash", str(script_path)]
+
+    try:
+        subprocess.run(cmd, cwd=str(project_path), check=True)
+        return "installed"
+    except subprocess.CalledProcessError as exc:
+        console.print(f"[red]Error:[/red] codex-subagents bootstrap failed (exit code {exc.returncode}).")
+        return "failed"
+
 class BannerGroup(TyperGroup):
     """Custom group that shows banner before help."""
 
@@ -629,6 +762,9 @@ def download_and_extract_template(
     Returns project_path. Uses tracker if provided (with keys: fetch, download, extract, cleanup)
     """
     current_dir = Path.cwd()
+    codex_install_status: str | None = None
+    codex_server_js_path: Path | None = None
+    codex_config_updated = False
 
     if tracker:
         tracker.start("fetch", "contacting GitHub API")
@@ -1051,6 +1187,16 @@ def init(
         finally:
             pass
 
+    if selected_ai == "codex":
+        codex_server_js_path = Path(os.path.abspath(str(get_codex_server_js().expanduser())))
+        codex_config_updated = configure_codex_mcp_settings(project_path, server_js=codex_server_js_path)
+        codex_install_status = maybe_install_codex_subagents(project_path, codex_server_js_path)
+        if not codex_config_updated:
+            console.print(
+                f"[yellow]Warning:[/yellow] Unable to update .codex/config.toml automatically. "
+                f"Point the MCP server at [cyan]{codex_server_js_path.as_posix()}[/cyan] manually."
+            )
+
     console.print(tracker.render())
     console.print("\n[bold green]Project ready.[/bold green]")
     
@@ -1104,13 +1250,28 @@ def init(
         
         steps_lines.append(f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]")
         step_num += 1
-        bootstrap_msg = (
-            f"{step_num}. Install the Codex sub-agent MCP server once per machine:"
-            "\n      [bash] .codex/scripts/bootstrap-subagents.sh"
-            "\n      [powershell] .codex/scripts/bootstrap-subagents.ps1"
+        server_display = (
+            codex_server_js_path.as_posix()
+            if codex_server_js_path is not None
+            else "~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js"
         )
-        steps_lines.append(bootstrap_msg)
-        step_num += 1
+        if codex_install_status in {"installed", "already-installed"}:
+            status_label = "installed" if codex_install_status == "installed" else "detected"
+            steps_lines.append(
+                f"{step_num}. Codex sub-agent MCP server {status_label} at [cyan]{server_display}[/cyan]"
+            )
+            step_num += 1
+        else:
+            bootstrap_msg = (
+                f"{step_num}. Install the Codex sub-agent MCP server once per machine:"
+                "\n      [bash] .codex/scripts/bootstrap-subagents.sh"
+                "\n      [powershell] .codex/scripts/bootstrap-subagents.ps1"
+                "\n      (rerun with --force after pulling codex-subagents updates)"
+            )
+            if codex_install_status == "failed":
+                bootstrap_msg += "\n      [red]Previous automatic install failed; check the log above before retrying.[/red]"
+            steps_lines.append(bootstrap_msg)
+            step_num += 1
 
     steps_lines.append(f"{step_num}. Start using slash commands with your AI agent:")
 
