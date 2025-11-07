@@ -136,7 +136,7 @@ Use **`/speckit.implement`** to execute all tasks and build your feature accordi
 ```
 
 > **Codex setup reminder**  
-> `specify init --ai codex` now rewrites `.codex/config.toml` so `CODEX_SUBAGENTS_DIR` points at the project's `.codex/agents` directory and offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` once per machine to clone/build `~/.codex/subagents/codex-subagents-mcp` (override via `CODEX_SUBAGENTS_REPO`). Rerun the bootstrap script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
+> `specify init --ai codex` now rewrites `.codex/config.toml` so the Codex CLI launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override via `CODEX_SUBAGENTS_REPO`) and passes `--agents-dir <project>/.codex/agents`, exactly as required by the codex-subagents README. During init, you’ll be prompted once per machine to run `.codex/scripts/bootstrap-subagents.{sh,ps1}`; rerun the script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
 
 ### 7. Run the mandatory code review
 
@@ -608,7 +608,7 @@ Once ready, use the `/speckit.implement` command to execute your implementation 
 /speckit.implement
 ```
 
-> **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp` is cloned/built once per machine while `.codex/config.toml` pins `CODEX_SUBAGENTS_DIR` to your project’s `.codex/agents` directory. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
+> **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists locally and `.codex/config.toml` pins `--agents-dir <project>/.codex/agents`. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
 
 The `/speckit.implement` command will:
 - Validate that all prerequisites are in place (constitution, spec, plan, and tasks)

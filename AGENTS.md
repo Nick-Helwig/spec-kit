@@ -397,8 +397,8 @@ Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). T
 - Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and `agent: "review"` for mandatory code review.
 - Each delegation must specify `cwd`, sandbox mode, approval policy, and whether to mirror the repo (implementor typically `mirror_repo=true` to keep git metadata; research and review can stay read-only).
 - Conversation Codex thread remains the coordinator: summarize incoming artifacts, decide next command (`/speckit.*`), and surface review findings to the human before accepting changes.
-- When you run `specify init --ai codex`, the CLI rewrites `.codex/config.toml` so `CODEX_SUBAGENTS_DIR` points at the project's `.codex/agents` directory (override the install path with `CODEX_SUBAGENTS_REPO`) and offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` to clone/build the MCP server once per machine. Rerun the bootstrap script manually with `--force` after pulling codex-subagents updates.
-- Reference personas live in `.codex/agents/*.md`, and Codex CLI relies on your global MCP server configuration (project configs just set `CODEX_SUBAGENTS_DIR`).
+- When you run `specify init --ai codex`, the CLI rewrites `.codex/config.toml` so the `subagents` MCP server launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override with `CODEX_SUBAGENTS_REPO`) **and** passes `--agents-dir <project>/.codex/agents` as required by the upstream server README. It also offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` once per machine; rerun with `--force` after pulling codex-subagents updates.
+- Reference personas live in `.codex/agents/*.md`, and Codex CLI loads them via the `--agents-dir` argument that Specify wires automatically.
 
 - Applicable scenarios:
   - **Full-stack build**: run the entire Spec → Plan → Tasks pipeline, then delegate implementation and review.
