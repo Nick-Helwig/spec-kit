@@ -344,7 +344,7 @@ def select_with_arrows(options: dict, prompt_text: str = "Select an option", def
 console = Console()
 
 CODEX_SUBAGENT_REPO_DEFAULT = Path.home() / ".codex" / "subagents" / "codex-subagents-mcp"
-CODEX_CONFIG_SECTION_PATTERN = re.compile(r"(?ms)^\[mcp_servers\.subagents\].*?(?=^\[|\Z)")
+CODEX_ENV_SECTION_PATTERN = re.compile(r"(?ms)^\[env\].*?(?=^\[|\Z)")
 
 
 def get_codex_subagents_repo() -> Path:
@@ -369,7 +369,7 @@ def _toml_escape(value: str) -> str:
 
 
 def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None = None) -> bool:
-    """Rewrite the MCP server section to launch codex-subagents directly."""
+    """Ensure CODEX_SUBAGENTS_DIR points at this project's .codex/agents directory."""
     config_path = project_path / ".codex" / "config.toml"
     if not config_path.exists():
         return False
@@ -380,41 +380,25 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
         console.print(f"[yellow]Warning:[/yellow] Could not read {config_path}: {exc}")
         return False
 
-    resolved_server = Path(os.path.abspath(str((server_js or get_codex_server_js()).expanduser())))
     agents_dir = Path(os.path.abspath(str(_codex_agents_dir(project_path))))
+    agents_assignment = f'CODEX_SUBAGENTS_DIR = "{_toml_escape(agents_dir.as_posix())}"'
 
-    server_str = _toml_escape(resolved_server.as_posix())
-    agents_str = _toml_escape(agents_dir.as_posix())
-
-    if os.name == "nt":
-        command = "node"
-        args = [
-            server_str,
-            "--agents-dir",
-            agents_str,
-        ]
+    match = CODEX_ENV_SECTION_PATTERN.search(config_text)
+    if match:
+        block = match.group(0)
+        lines = block.splitlines()
+        header = lines[0]
+        body_lines = lines[1:]
+        filtered: list[str] = [line for line in body_lines if not line.strip().startswith("CODEX_SUBAGENTS_DIR")]
+        if filtered and filtered[-1].strip():
+            filtered.append("")
+        filtered.append(agents_assignment)
+        new_block = header + "\n" + "\n".join(filtered).rstrip() + "\n"
+        new_text = config_text[: match.start()] + new_block + config_text[match.end() :]
     else:
-        command = "/usr/bin/env"
-        args = [
-            "node",
-            server_str,
-            "--agents-dir",
-            agents_str,
-        ]
-
-    args_block = ",\n".join(f'  "{arg}"' for arg in args)
-    new_section = (
-        "[mcp_servers.subagents]\n"
-        f'command = "{_toml_escape(command)}"\n'
-        "args = [\n"
-        f"{args_block}\n"
-        "]\n"
-    )
-
-    if CODEX_CONFIG_SECTION_PATTERN.search(config_text):
-        new_text = CODEX_CONFIG_SECTION_PATTERN.sub(new_section + "\n", config_text)
-    else:
-        new_text = config_text.rstrip() + "\n\n" + new_section + "\n"
+        new_section = f"[env]\n{agents_assignment}\n"
+        sep = "" if config_text.endswith("\n\n") else "\n\n"
+        new_text = (config_text.rstrip() + sep + new_section + "\n").lstrip("\n")
 
     try:
         config_path.write_text(new_text, encoding="utf-8")
@@ -1194,7 +1178,7 @@ def init(
         if not codex_config_updated:
             console.print(
                 f"[yellow]Warning:[/yellow] Unable to update .codex/config.toml automatically. "
-                f"Point the MCP server at [cyan]{codex_server_js_path.as_posix()}[/cyan] manually."
+                f"Set CODEX_SUBAGENTS_DIR to [cyan]{(_codex_agents_dir(project_path)).as_posix()}[/cyan] manually."
             )
 
     console.print(tracker.render())
@@ -1249,6 +1233,9 @@ def init(
             cmd = f"export CODEX_HOME={quoted_path}"
         
         steps_lines.append(f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]")
+        step_num += 1
+        agents_dir_display = _codex_agents_dir(project_path).as_posix()
+        steps_lines.append(f"{step_num}. [cyan]CODEX_SUBAGENTS_DIR[/cyan] now points to [cyan]{agents_dir_display}[/cyan]")
         step_num += 1
         server_display = (
             codex_server_js_path.as_posix()

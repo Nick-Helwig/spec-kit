@@ -4,16 +4,10 @@ web_search_request = true
 [sandbox_workspace_write]
 network_access = true
 
-[mcp_servers.subagents]
-# The Specify CLI rewrites this section with absolute paths during `specify init --ai codex`.
-# Directly start the codex-subagents MCP server instead of chaining through helper scripts.
-command = "/usr/bin/env"
-args = [
-  "node",
-  "/ABSOLUTE/PATH/TO/codex-subagents-mcp/dist/codex-subagents.mcp.js",
-  "--agents-dir",
-  "/ABSOLUTE/PATH/TO/PROJECT/.codex/agents"
-]
+[env]
+# Specify CLI rewrites CODEX_SUBAGENTS_DIR with the absolute path to this project's `.codex/agents`
+# directory during `specify init --ai codex`. Point your global Codex config at the MCP server binary.
+CODEX_SUBAGENTS_DIR = "/ABSOLUTE/PATH/TO/PROJECT/.codex/agents"
 
 [profiles.research]
 model = "gpt-5-high"
