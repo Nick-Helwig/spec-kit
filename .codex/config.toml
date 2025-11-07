@@ -6,7 +6,44 @@ network_access = true
 
 [mcp_servers.subagents]
 command = "bash"
-args = ["-lc", "CODEX_HOME=\"${CODEX_HOME:-$PWD/.codex}\"; \"$CODEX_HOME/scripts/run-subagents.sh\""]
+args = ["-lc", '''
+set -euo pipefail
+
+resolve_script() {
+  if [ -n "${CODEX_HOME:-}" ] && [ -x "${CODEX_HOME}/scripts/run-subagents.sh" ]; then
+    printf '%s\n' "${CODEX_HOME}/scripts/run-subagents.sh"
+    return 0
+  fi
+
+  if ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
+    CANDIDATE="$ROOT/.codex/scripts/run-subagents.sh"
+    if [ -x "$CANDIDATE" ]; then
+      printf '%s\n' "$CANDIDATE"
+      return 0
+    fi
+  fi
+
+  SEARCH="$PWD"
+  while [ "$SEARCH" != "/" ]; do
+    CANDIDATE="$SEARCH/.codex/scripts/run-subagents.sh"
+    if [ -x "$CANDIDATE" ]; then
+      printf '%s\n' "$CANDIDATE"
+      return 0
+    fi
+    NEXT="$(dirname "$SEARCH")"
+    if [ "$NEXT" = "$SEARCH" ]; then
+      break
+    fi
+    SEARCH="$NEXT"
+  done
+
+  echo "[codex-subagents] Could not locate .codex/scripts/run-subagents.sh (start: $PWD)" >&2
+  return 1
+}
+
+SCRIPT_PATH="$(resolve_script)" || exit 1
+exec "$SCRIPT_PATH"
+''']
 
 [profiles.research]
 model = "gpt-5-high"
