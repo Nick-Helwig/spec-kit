@@ -4,12 +4,9 @@ web_search_request = true
 [sandbox_workspace_write]
 network_access = true
 
-[tools]
-web_search = true
-
 [mcp_servers.subagents]
-command = "./scripts/run-subagents.sh"
-args = []
+command = "bash"
+args = ["-lc", "CODEX_HOME=\"${CODEX_HOME:-$PWD/.codex}\"; \"$CODEX_HOME/scripts/run-subagents.sh\""]
 
 [profiles.research]
 model = "gpt-5-high"
