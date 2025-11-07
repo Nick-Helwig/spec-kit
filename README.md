@@ -136,7 +136,7 @@ Use **`/speckit.implement`** to execute all tasks and build your feature accordi
 ```
 
 > **Codex setup reminder**  
-> Run `.codex/scripts/bootstrap-subagents.sh` (or `.codex/scripts/bootstrap-subagents.ps1` on Windows) once per machine to install the sub-agent MCP server before delegating work.
+> Clone [leonardsellem/codex-subagents-mcp](https://github.com/leonardsellem/codex-subagents-mcp) into `~/.codex/subagents/codex-subagents-mcp` (or set `CODEX_SUBAGENTS_REPO`), then run `.codex/scripts/bootstrap-subagents.sh` (or the PowerShell variant) once per machine to install/build the MCP server before delegating work.
 
 ### 7. Run the mandatory code review
 
@@ -608,7 +608,7 @@ Once ready, use the `/speckit.implement` command to execute your implementation 
 /speckit.implement
 ```
 
-> **One-time Codex setup:** Before delegating to the implementor/review agents, run `.codex/scripts/bootstrap-subagents.sh` (or the PowerShell variant) so the MCP sub-agent server is installed locally. Rerun with `--force` if you need to update to the latest release.
+> **One-time Codex setup:** Clone `https://github.com/leonardsellem/codex-subagents-mcp.git` to `~/.codex/subagents/codex-subagents-mcp` (override with `CODEX_SUBAGENTS_REPO`) and run `.codex/scripts/bootstrap-subagents.sh` (or the PowerShell variant) so the MCP sub-agent server is installed locally. Rerun with `--force` after pulling upstream changes.
 
 The `/speckit.implement` command will:
 - Validate that all prerequisites are in place (constitution, spec, plan, and tasks)

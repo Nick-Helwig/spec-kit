@@ -3,41 +3,57 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$codexHome = (Resolve-Path (Join-Path $scriptDir "..")).Path
-$cacheDir = Join-Path $codexHome ".cache/subagents"
 $nodeBin = if ($env:NODE_BIN) { $env:NODE_BIN } else { "node" }
 $npmBin = if ($env:NPM_BIN) { $env:NPM_BIN } else { "npm" }
-
-if (-not (Get-Command $nodeBin -ErrorAction SilentlyContinue)) {
-    Write-Error "[codex-subagents] Node.js (>=18) is required to install the MCP server."
-}
-
-if (-not (Get-Command $npmBin -ErrorAction SilentlyContinue)) {
-    Write-Error "[codex-subagents] npm is required to install the MCP server."
-}
-
+$repoDir = if ($env:CODEX_SUBAGENTS_REPO) { $env:CODEX_SUBAGENTS_REPO } else { Join-Path $HOME ".codex/subagents/codex-subagents-mcp" }
 $force = $false
 if ($args.Length -gt 0 -and $args[0] -eq "--force") {
     $force = $true
 }
 
-New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
+if (-not (Get-Command $nodeBin -ErrorAction SilentlyContinue)) {
+    Write-Error "[codex-subagents] Node.js (>=18) is required."
+}
+
+if (-not (Get-Command $npmBin -ErrorAction SilentlyContinue)) {
+    Write-Error "[codex-subagents] npm is required."
+}
+
+if (-not (Test-Path $repoDir)) {
+    Write-Error "[codex-subagents] Repository not found at $repoDir. Clone https://github.com/leonardsellem/codex-subagents-mcp there (or set CODEX_SUBAGENTS_REPO) first."
+}
 
 if ($force) {
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $cacheDir "node_modules")
-    Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $cacheDir "package-lock.json")
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $repoDir "node_modules")
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $repoDir "dist")
 }
 
-$packageJson = Join-Path $cacheDir "package.json"
-if (-not (Test-Path $packageJson)) {
-    Push-Location $cacheDir
-    & $npmBin init -y *> $null
-    Pop-Location
+$needsInstall = -not (Test-Path (Join-Path $repoDir "node_modules"))
+$needsBuild = -not (Test-Path (Join-Path $repoDir "dist/codex-subagents.mcp.js"))
+
+if (-not $needsInstall -and -not $needsBuild) {
+    Write-Host "[codex-subagents] Dependencies and build artifacts already exist at $repoDir"
+    exit 0
 }
 
-Write-Host "[codex-subagents] Installing codex-subagents-mcp into $cacheDir"
-Push-Location $cacheDir
-$env:NPM_CONFIG_LOGLEVEL = "error"
-& $npmBin install codex-subagents-mcp@latest
+Push-Location $repoDir
+if ($needsInstall) {
+    Write-Host "[codex-subagents] Installing npm dependencies in $repoDir"
+    $env:NPM_CONFIG_LOGLEVEL = "error"
+    & $npmBin install
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Error "[codex-subagents] npm install failed. Ensure dependencies are available."
+    }
+}
+
+if ($needsBuild) {
+    Write-Host "[codex-subagents] Building codex-subagents-mcp"
+    & $npmBin run build
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Error "[codex-subagents] npm run build failed."
+    }
+}
 Pop-Location
-Write-Host "[codex-subagents] Installation complete. You can now launch Codex sub-agents."
+Write-Host "[codex-subagents] Ready. Codex can now launch sub-agents."

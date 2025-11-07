@@ -23,7 +23,7 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
   - Share any relevant waivers or clarifications collected during `/speckit.plan` Checkpoint B or `/speckit.tasks` Checkpoint C.
   - Guarantee that Perplexity-backed research (RT-IDs + citations) already lives in `research.md`; implementor should not redo external research.
 - After this implementor finishes (or hits BLOCKED), control returns to the primary Codex assistant, which must immediately trigger the `review` sub-agent for code validation.
-- **Prerequisite**: Run `.codex/scripts/bootstrap-subagents.sh` (or `.codex/scripts/bootstrap-subagents.ps1`) at least once so the MCP server binary exists locally before delegating.
+- **Prerequisite**: Clone `https://github.com/leonardsellem/codex-subagents-mcp.git` to `~/.codex/subagents/codex-subagents-mcp` (or set `CODEX_SUBAGENTS_REPO`), then run `.codex/scripts/bootstrap-subagents.sh` (or `.codex/scripts/bootstrap-subagents.ps1`) so the MCP server binary exists locally before delegating.
 
 ## SDD Command Runbook (No Skips Allowed)
 

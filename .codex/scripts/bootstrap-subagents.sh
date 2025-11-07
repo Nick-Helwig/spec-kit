@@ -3,35 +3,67 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_HOME="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CACHE_DIR="${CODEX_HOME}/.cache/subagents"
 NODE_BIN="${NODE_BIN:-node}"
 NPM_BIN="${NPM_BIN:-npm}"
-
-if ! command -v "$NODE_BIN" >/dev/null 2>&1; then
-  echo "[codex-subagents] Node.js (>=18) is required to install the MCP server." >&2
-  exit 1
-fi
-
-if ! command -v "$NPM_BIN" >/dev/null 2>&1; then
-  echo "[codex-subagents] npm is required to install the MCP server." >&2
-  exit 1
-fi
-
+REPO_DIR="${CODEX_SUBAGENTS_REPO:-$HOME/.codex/subagents/codex-subagents-mcp}"
 FORCE=0
+
 if [[ "${1:-}" == "--force" ]]; then
   FORCE=1
 fi
 
-mkdir -p "$CACHE_DIR"
+if ! command -v "$NODE_BIN" >/dev/null 2>&1; then
+  echo "[codex-subagents] Node.js (>=18) is required." >&2
+  exit 1
+fi
+
+if ! command -v "$NPM_BIN" >/dev/null 2>&1; then
+  echo "[codex-subagents] npm is required." >&2
+  exit 1
+fi
+
+if [[ ! -d "$REPO_DIR" ]]; then
+  cat >&2 <<EOF
+[codex-subagents] Repository not found at $REPO_DIR
+Clone it (or set CODEX_SUBAGENTS_REPO) before running this script:
+  git clone https://github.com/leonardsellem/codex-subagents-mcp "$REPO_DIR"
+EOF
+  exit 1
+fi
 
 if [[ $FORCE -eq 1 ]]; then
-  rm -rf "$CACHE_DIR/node_modules" "$CACHE_DIR/package-lock.json"
+  rm -rf "$REPO_DIR/node_modules" "$REPO_DIR/dist"
 fi
 
-if [[ ! -f "$CACHE_DIR/package.json" ]]; then
-  (cd "$CACHE_DIR" && "$NPM_BIN" init -y >/dev/null 2>&1)
+NEED_INSTALL=0
+[[ ! -d "$REPO_DIR/node_modules" ]] && NEED_INSTALL=1
+
+NEED_BUILD=0
+[[ ! -f "$REPO_DIR/dist/codex-subagents.mcp.js" ]] && NEED_BUILD=1
+
+if [[ $NEED_INSTALL -eq 0 && $NEED_BUILD -eq 0 ]]; then
+  echo "[codex-subagents] Dependencies and build artifacts already present at $REPO_DIR"
+  exit 0
 fi
 
-echo "[codex-subagents] Installing codex-subagents-mcp into $CACHE_DIR"
-(cd "$CACHE_DIR" && NPM_CONFIG_LOGLEVEL=error "$NPM_BIN" install codex-subagents-mcp@latest)
-echo "[codex-subagents] Installation complete. You can now launch Codex sub-agents."
+pushd "$REPO_DIR" >/dev/null
+if [[ $NEED_INSTALL -eq 1 ]]; then
+  echo "[codex-subagents] Installing npm dependencies in $REPO_DIR"
+  if ! NPM_CONFIG_LOGLEVEL=error "$NPM_BIN" install; then
+    echo "[codex-subagents] npm install failed. Ensure you have network access or preinstall dependencies manually." >&2
+    popd >/dev/null
+    exit 1
+  fi
+fi
+
+if [[ $NEED_BUILD -eq 1 ]]; then
+  echo "[codex-subagents] Building codex-subagents-mcp"
+  if ! "$NPM_BIN" run build; then
+    echo "[codex-subagents] npm run build failed." >&2
+    popd >/dev/null
+    exit 1
+  fi
+fi
+popd >/dev/null
+
+echo "[codex-subagents] Ready. Run .codex/scripts/run-subagents.sh via Codex."
