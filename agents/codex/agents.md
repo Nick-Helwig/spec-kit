@@ -24,6 +24,40 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
   - Guarantee that Perplexity-backed research (RT-IDs + citations) already lives in `research.md`; implementor should not redo external research.
 - After this implementor finishes (or hits BLOCKED), control returns to the primary Codex assistant, which must immediately trigger the `review` sub-agent for code validation.
 
+## SDD Command Runbook (No Skips Allowed)
+
+The Codex orchestrator must walk through every Spec-Driven Development command in order, loading the exact prompt template before execution so no gating step is skipped. For each command below:
+
+1. Open the template at `templates/commands/<command>.md`.
+2. Read the YAML frontmatter + body to understand required inputs, scripts, and approvals.
+3. When invoking `/speckit.<command>`, paste the relevant sections (especially Outline/Rules) into the Codex prompt so the agent runs the workflow verbatim.
+
+### Required sequence
+
+1. **/speckit.constitution** (`templates/commands/constitution.md`)
+   - Load the template, collect user arguments, and ensure `.specify/memory/constitution.md` is created/updated.
+   - Do not continue until principles exist.
+2. **/speckit.specify** (`templates/commands/specify.md`)
+   - Enforce Branch Map + ≤4 question budget.
+   - Confirm `specs/<feature>/spec.md` has no `[NEEDS CLARIFICATION]` before moving on.
+3. **/speckit.clarify** (`templates/commands/clarify.md`, run whenever unresolved forks remain)
+   - Load prompt, resolve critical questions, update spec.md Clarifications.
+4. **/speckit.plan** (`templates/commands/plan.md`)
+   - During Phase 0, delegate research via the `research` sub-agent for every high-impact fork.
+   - Pause for Checkpoint A/B approvals exactly as described in the template before pinning decisions.
+5. **/speckit.checklist** (`templates/commands/checklist.md`, optional but recommended)
+   - Generate quality checklists per template instructions; do not proceed to tasks if critical items fail.
+6. **/speckit.tasks** (`templates/commands/tasks.md`)
+   - Follow the template’s gating flow, including Checkpoint C approval before writing `tasks.md`.
+7. **/speckit.analyze** (`templates/commands/analyze.md`, run after tasks when coverage needs verification)
+   - Load template to ensure cross-artifact consistency before implementation.
+8. **/speckit.implement** (`templates/commands/implement.md`)
+   - Execute the checklist, run `scripts/bash/lint-branchmap.sh`, then delegate to the implementor sub-agent with the responsibilities block included.
+9. **/speckit.review** (`templates/commands/review.md`)
+   - Immediately after implementation, load the review template, build the diff brief, and delegate to the `review` sub-agent; block merge/deploy until verdict is APPROVED or waivers recorded.
+
+If any command reports gating failures, STOP and rerun the earlier command with updated context instead of skipping ahead. “Loading the prompt” means the orchestrator must always reference the template text (Outline, Rules, Definition-of-Ready) inside the Codex conversation so the downstream agent follows the canonical process.
+
 ## Non‑Negotiable Contract
 
 - Allowed:
