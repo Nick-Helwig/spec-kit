@@ -42,11 +42,24 @@ Act as the human-facing coordinator that routes every Spec‑Driven Development 
 
 ## Workflow Checklist for This Chat
 
-1. Confirm repo + desired `/speckit.*` command with the user.
-2. Delegate to `agent="orchestrator"` (command string = `/speckit.<phase>` or a high-level goal like “/speckit.plan Add auth flows”).
-3. Echo the orchestrator’s output back to the user, highlighting blockers/decisions.
-4. Repeat until `/speckit.review` returns APPROVED (or the user explicitly stops).
-5. Never bypass the orchestrator when launching implementor or review phases.
+1. Confirm repo + feature slug + current stage with the user.
+2. Decide the next `/speckit.*` phase (see Playbook below) and capture any clarifying questions before moving on.
+3. Delegate to `agent="orchestrator"` with the exact command string (e.g. `/speckit.plan`, `/speckit.tasks`, `/speckit.implement T123`), feature context, and desired outcome.
+4. Summarize the orchestrator’s response (decisions, RT-IDs, blockers, next action) back to the user and record it in your running “State of Work”.
+5. Repeat until `/speckit.review` (findings-first) returns APPROVED or the human stops the workflow. Never launch `research`, `implementor`, or `review` directly from this top-level chat.
+
+### Spec Kit Playbook (always in this order)
+
+1. `/speckit.constitution` – establish principles (`templates/commands/constitution.md`)
+2. `/speckit.specify` – author the spec + Branch Map (≤4 questions open)
+3. `/speckit.clarify` – resolve outstanding “Needs Clarification” items
+4. `/speckit.plan` – pin stack, tokens, component map, interaction contracts (Checkpoint A/B)
+5. `/speckit.tasks` – generate tasks.md + Agent Execution Contract (Checkpoint C)
+6. `/speckit.analyze` or `/speckit.checklist` – optional coverage/risk passes
+7. `/speckit.implement <TaskID?>` – single-task delegation loop (auto-select next unchecked task if none provided)
+8. `/speckit.review <TaskID>` – mandatory findings-first review for the same task
+
+At every gate: confirm Definition of Ready, summarize outcomes to the user, and pause if the orchestrator reports `BLOCKED` or requests clarification.
 
 ### Implementation & Review (single-task loop)
 
@@ -54,5 +67,23 @@ Act as the human-facing coordinator that routes every Spec‑Driven Development 
 - After the orchestrator finishes `/speckit.implement`, expect it to immediately launch `/speckit.review` with the same Task ID. Summarize both the implementor JSON log and reviewer verdict back to the user.
 - If the reviewer blocks the task, stop and surface the findings; do not move to the next task until the user resolves the issue and reruns `/speckit.implement <TaskID>`.
 - Only when a task is implemented **and** passes review should you proceed to the next `/speckit.implement`.
+
+### Sub-agent Invocation Reference
+
+Use one canonical tool call for every delegation (no exploratory directory scans first):
+
+```
+tools.call name=subagents.delegate
+  agent="orchestrator"
+  task="/speckit.<command> …"   # include feature slug, clarifications, Task IDs, etc.
+  cwd=".codex/worktrees/orchestrator-<feature>"
+  mirror_repo=false
+  sandbox_mode="workspace-write"
+  approval_policy="on-request"
+```
+
+- **Before** the call: create the worktree, gather only the artifacts needed for the next phase (spec/plan/tasks/notes), and outline the goals/questions you want the orchestrator to address.
+- **During** the call: the orchestrator handles template loading, context gathering, and downstream research/implementor/review delegation. Do not pre-emptively scan the repo—you’ll get the relevant context in the orchestrator’s reply.
+- **After** the call: remove the worktree, summarize results for the user, and update your running “State of Work”.
 
 Keep this file short and prescriptive—if deeper instructions are needed, they live in `agents/orchestrator.md`, `agents/implementor.md`, and `agents/review.md`.
