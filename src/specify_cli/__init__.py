@@ -1104,6 +1104,13 @@ def init(
         
         steps_lines.append(f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]")
         step_num += 1
+        bootstrap_msg = (
+            f"{step_num}. Install the Codex sub-agent MCP server once per machine:"
+            "\n      [bash] .codex/scripts/bootstrap-subagents.sh"
+            "\n      [powershell] .codex/scripts/bootstrap-subagents.ps1"
+        )
+        steps_lines.append(bootstrap_msg)
+        step_num += 1
 
     steps_lines.append(f"{step_num}. Start using slash commands with your AI agent:")
 
