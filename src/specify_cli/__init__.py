@@ -344,7 +344,7 @@ def select_with_arrows(options: dict, prompt_text: str = "Select an option", def
 console = Console()
 
 CODEX_SUBAGENT_REPO_DEFAULT = Path.home() / ".codex" / "subagents" / "codex-subagents-mcp"
-CODEX_CONFIG_SECTION_PATTERN = re.compile(r"(?ms)^\[mcp_servers\.subagents\][^\[]*")
+CODEX_CONFIG_SECTION_PATTERN = re.compile(r"(?ms)^\[mcp_servers\.subagents\].*?(?=^\[|\Z)")
 
 
 def get_codex_subagents_repo() -> Path:
