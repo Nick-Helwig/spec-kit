@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CODEX_HOME="$(cd "${SCRIPT_DIR}/.." && pwd)"
-AGENTS_DIR="${CODEX_HOME}/agents"
+PROJECT_ROOT="$(cd "${CODEX_HOME}/.." && pwd)"
+AGENTS_DIR="${PROJECT_ROOT}/agents"
 NODE_BIN="${NODE_BIN:-node}"
 SUBAGENT_REPO="${CODEX_SUBAGENTS_REPO:-$HOME/.codex/subagents/codex-subagents-mcp}"
 SERVER_JS="${SUBAGENT_REPO}/dist/codex-subagents.mcp.js"
