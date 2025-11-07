@@ -10,10 +10,9 @@
 <!--
   Record critical decisions here as they are resolved via /speckit.clarify.
   Format: "- Q: <question> → A: <final answer> (YYYY-MM-DD)"
+  Add a bullet only when a clarification has been answered; leave this section empty until then.
   All critical ambiguities MUST be resolved before planning begins.
 -->
-
-- Q:  → A:  (YYYY-MM-DD)
 
 ## Assumptions (Must Validate in Research)
 

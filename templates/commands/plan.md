@@ -22,48 +22,81 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
-3. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
+3. **Execute plan workflow with gated checkpoints**:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
    - Fill Constitution Check section from constitution
    - Evaluate gates (ERROR if violations unjustified)
-   - Phase 0: Generate research.md using `templates/research-template.md` (resolve all NEEDS CLARIFICATION)
-     - Include a Design Reference Gallery (8–15 examples). Initial anchors: Linear, Stripe, Figma (variation allowed).
-     - Perform Library/Stack research with citations (≤6 months preferred). Compare ≥2 options and note adoption/compatibility/a11y.
-     - Perform Domain/Market validation and risks; create RT-### decision logs with citations.
-   - Phase 1: Generate data-model.md, contracts/, quickstart.md
-   - Phase 1: Update agent context by running the agent script
-   - Pin final design system/library and versions with rationale (from research RT-IDs)
-   - Re-evaluate Constitution Check post-design
+   - **Phase 0 (Research Pass)**:
+     - For every high-impact Branch Map fork, delegate research to the `research` sub-agent (Perplexity MCP) by calling `mcp__subagents__delegate` with `agent: "research"`, `sandbox_mode: "read-only"`, and a concise brief (fork ID, question, success criteria, RT-ID placeholder). Expect Perplexity-sourced citations ≤6 months old.
+     - Build a Branch Map of technical forks (frameworks, hosting model, auth strategies, data stores, etc.). Rank each fork by Impact × Uncertainty.
+     - Spend a Question Budget (≤ 4) on the highest-ranked forks and capture responses. Record any remaining high-impact forks as unresolved clarifications—do not self-resolve them.
+     - Generate `research.md` via `templates/research-template.md`, ensuring Design Reference Gallery, Library/Stack analysis, Domain validation, and RT-IDs are documented. Explicitly list unresolved forks at the end.
+     - **Checkpoint A**: Summarize findings + unresolved forks for the user and pause execution until they respond with `continue`, `revise`, or new clarifications. Abort command if approval is not granted.
+   - **Phase 1 (Design & Contracts)**:
+     - Proceed only after Checkpoint A approval and after all high-impact forks are answered or explicitly deferred by the user.
+     - Populate plan.md, data-model.md, contracts/, quickstart.md using the templates, ensuring every Section DOR item (tokens, component map, interaction contracts, evidence links) is completed.
+     - Run the agent context update scripts only after presenting the drafted plan summary to the user.
+     - **Checkpoint B**: Present a Branch Map snapshot (covering design tokens, component map coverage, contract scope) plus any remaining assumptions. Wait for user approval before finalizing files or updating agent context. Abort if approval is withheld.
+   - Pin final design system/library and versions only after Checkpoint B approval, referencing RT-IDs.
+   - Re-evaluate Constitution Check post-design and stop if violations remain unresolved.
 
-4. **Stop and report**: Command ends after Phase 2 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+4. **Stop and report**: Command ends after all checkpoints are approved. Report branch, IMPL_PLAN path, generated artifacts, and any deferrals.
 
 ## Phases
 
-### Phase 0: Outline & Research
+### Phase 0: Outline & Research (Checkpoint A)
 
 1. **Extract unknowns from Technical Context** above:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
 
-2. **Generate and dispatch research agents**:
+2. **Construct the Branch Map & question plan**:
+   - Enumerate smallest forks (e.g., SPA vs MPA, serverless vs container, OAuth vs SAML).
+   - Rank forks by Impact × Uncertainty.
+   - Spend up to four clarification questions on the highest-ranked forks; capture answers verbatim. Unanswered high-impact forks must be flagged for the user.
+
+3. **Generate and dispatch research agents**:
    ```
-   For each unknown in Technical Context:
-     Task: "Research {unknown} for {feature context}"
-   For each technology choice:
-     Task: "Find best practices for {tech} in {domain}"
+   For each high-impact fork or unknown:
+     1. Draft a brief (fork ID, question, decision criteria, success metrics, RT-ID placeholder).
+     2. Call `mcp__subagents__delegate` with `agent: "research"` (Perplexity MCP backend) and include:
+        - `cwd`: repo root (read-only)
+        - `sandbox_mode`: "read-only"
+        - `task`: the brief above plus required outputs (3–5 insights, citations, recommendation+confidence)
+     3. Capture the sub-agent's citations, RT-IDs, and recommendation notes and paste them into `research.md`.
    ```
 
-3. **Consolidate findings** in `research.md` using format:
+4. **Consolidate findings** in `research.md` using format:
    - Decision: [what was chosen]
    - Rationale: [why chosen]
    - Alternatives considered: [what else evaluated]
+   - Unresolved forks / outstanding clarifications
 
-**Output**: research.md with all NEEDS CLARIFICATION resolved
+5. **Checkpoint A**:
+   - Summarize key findings, citation highlights, and unresolved forks.
+   - Present summary + Branch Map status to the user and wait for approval (`continue`) or revisions.
+   - Abort command if approval is denied or new clarifications are issued (rerun `/speckit.specify` or `/speckit.clarify` as directed).
 
-### Phase 1: Design & Contracts
+**Output**: research.md plus a user-approved research summary (Checkpoint A).
 
-**Prerequisites:** `research.md` complete
+### Delegated Research Runbook
+
+1. Prioritize forks/questions by Impact × Uncertainty.
+2. For each item, assemble:
+   - Fork/decision identifier
+   - Current assumptions + blockers
+   - Desired deliverables (insights list, pros/cons, recommendation, citations)
+3. Invoke `mcp__subagents__delegate` (`agent: "research"`, `mirror_repo: false`, `sandbox_mode: "read-only"`, `approval_policy: "on-request"`) so the Perplexity-backed agent can perform live web research.
+4. Ensure the response includes:
+   - RT-ID (traceable back to `research.md`)
+   - 3–5 bullet insights tied to cited sources (≤6 months old where possible)
+   - Recommendation + confidence level + alternative paths
+5. Paste the findings into `research.md`, linking citations inline. If the agent reports insufficient sources, escalate via `/speckit.clarify` instead of guessing.
+
+### Phase 1: Design & Contracts (Checkpoint B)
+
+**Prerequisites:** `research.md` plus Checkpoint A approval; no high-impact forks unresolved unless user explicitly deferred them.
 
 1. **Extract entities from feature spec** → `data-model.md`:
    - Entity name, fields, relationships
@@ -75,14 +108,13 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Use standard REST/GraphQL patterns
    - Output OpenAPI/GraphQL schema to `/contracts/`
 
-3. **Agent context update**:
-   - Run `{AGENT_SCRIPT}`
-   - These scripts detect which AI agent is in use
-   - Update the appropriate agent-specific context file
-   - Add only new technology from current plan
-   - Preserve manual additions between markers
+3. **Draft plan artifacts & seek approval**:
+   - Populate plan.md sections (tokens, component map, interaction contracts, Evidence-to-Decision Map). Highlight any assumptions still pending.
+   - Prepare data-model.md, contracts/, quickstart.md drafts but do not run agent context scripts yet.
+   - Present summary + Branch Map snapshot and outstanding assumptions to the user (**Checkpoint B**). Wait for approval before finalizing files.
+   - Upon approval, run `{AGENT_SCRIPT}` to sync agent context, then finalize plan.md, data-model.md, contracts/, quickstart.md.
 
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
+**Output**: data-model.md, /contracts/*, quickstart.md, plan.md, and updated agent context, each approved via Checkpoint B.
 
 ## Key rules
 

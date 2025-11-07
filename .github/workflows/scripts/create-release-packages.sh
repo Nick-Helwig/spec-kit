@@ -166,6 +166,11 @@ build_variant() {
       mkdir -p "$base_dir/.windsurf/workflows"
       generate_commands windsurf md "\$ARGUMENTS" "$base_dir/.windsurf/workflows" "$script" ;;
     codex)
+      mkdir -p "$base_dir/.codex"
+      if [[ -d .codex ]]; then
+        cp -R .codex/. "$base_dir/.codex/"
+        echo "Copied .codex assets -> .codex"
+      fi
       mkdir -p "$base_dir/.codex/prompts"
       generate_commands codex md "\$ARGUMENTS" "$base_dir/.codex/prompts" "$script" ;;
     kilocode)
@@ -237,4 +242,3 @@ done
 
 echo "Archives in $GENRELEASES_DIR:"
 ls -1 "$GENRELEASES_DIR"/spec-kit-template-*-"${NEW_VERSION}".zip
-

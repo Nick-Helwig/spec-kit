@@ -51,10 +51,11 @@ Given that feature description, do this:
     2. Extract key concepts from description
        Identify: actors, actions, data, constraints
     3. For unclear aspects (no guessed defaults for core behavior/UX):
-       - Prefer marking with [NEEDS CLARIFICATION: specific question] or add to Assumptions for later validation in Research
-       - Only infer defaults for trivial, low-impact details and record as Assumptions
-       - **LIMIT: Maximum 5 [NEEDS CLARIFICATION] markers total**
-       - Prioritize clarifications by impact: scope > security/privacy > user experience > technical details
+       - Build a quick Branch Map that lists the smallest forks which would change the outcome (e.g., “web vs desktop,” “framework A vs B,” “toggle vs hold”).
+       - Rank each fork by **Impact × Uncertainty** (how much the plan changes × how likely the current guess is wrong).
+       - Ask about the highest-ranked forks until confidence becomes high **or** you exhaust the Question Budget (≤ 4). Record every unanswered high-impact fork as `[NEEDS CLARIFICATION: …]` and pause for user input instead of guessing.
+       - Only log an assumption when the Branch Map flags the fork as low-impact or low-uncertainty, and capture the rationale inside the Assumptions section.
+       - Prioritize clarifications by impact: scope > security/privacy > user experience > technical details.
     4. Fill User Scenarios & Testing section
        If no clear user flow: ERROR "Cannot determine user scenarios"
     5. Generate Functional Requirements
@@ -185,15 +186,13 @@ Given that feature description, do this:
 
 When creating this spec from a user prompt:
 
-1. **Make informed guesses**: Use context, industry standards, and common patterns to fill gaps
-2. **Document assumptions**: Record reasonable defaults in the Assumptions section
-3. **Limit clarifications**: Maximum 3 [NEEDS CLARIFICATION] markers - use only for critical decisions that:
-   - Significantly impact feature scope or user experience
-   - Have multiple reasonable interpretations with different implications
-   - Lack any reasonable default
-4. **Prioritize clarifications**: scope > security/privacy > user experience > technical details
-5. **Think like a tester**: Every vague requirement should fail the "testable and unambiguous" checklist item
-6. **Common areas needing clarification** (only if no reasonable default exists):
+1. **Construct the Branch Map** described above before drafting the spec. Revisit it whenever new information appears.
+2. **Rank forks by Impact × Uncertainty** and spend your Question Budget (≤ 4) on the highest-ranked forks. If high-impact forks remain unanswered once the budget is exhausted, pause and surface them to the user rather than guessing.
+3. **Record every unresolved high-impact decision** as `[NEEDS CLARIFICATION: …]`. Convert nothing to an assumption unless it is explicitly low-impact or low-uncertainty.
+4. **Document assumptions** only for those low-impact/defaultable items and state the rationale inside the Assumptions section.
+5. **Prioritize clarifications**: scope > security/privacy > user experience > technical details.
+6. **Think like a tester**: Every vague requirement should fail the "testable and unambiguous" checklist item.
+7. **Common areas needing clarification** (only if no reasonable default exists):
    - Feature scope and boundaries (include/exclude specific use cases)
    - User types and permissions (if multiple conflicting interpretations possible)
    - Security/compliance requirements (when legally/financially significant)

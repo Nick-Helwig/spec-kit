@@ -352,6 +352,7 @@ Commands map to templates and DOR gates:
 | /speckit.tasks | tasks-template.md | tasks.md (Agent Execution Contract, Traceability Summary) | Format compliance; traceability complete |
 | /speckit.checklist | checklist-template.md | checklists/* | Ambiguity lint, UI coverage, research freshness |
 | /speckit.analyze | analyze guide | Analysis report | All gates PASS → Ready |
+| /speckit.review | review.md | Review findings report (severity ordered) | All blocking issues resolved or waived |
 
 ### Conversation with Codex (Designer Role)
 - Lead each phase with a short synthesis and ≤5 decisive questions.
@@ -362,6 +363,15 @@ Commands map to templates and DOR gates:
 - Perform live web research with authoritative sources; prefer citations ≤6 months old.
 - Build a Design Reference Gallery (8–15 examples) starting with: Linear, Stripe, Figma; allow visual variation while enforcing a11y and performance budgets.
 - Maintain Evidence‑to‑Decision mapping (RT‑IDs) and pin final decisions in Plan.
+
+#### Delegated Research (Perplexity MCP)
+- Use the Perplexity MCP server (`mcp__perplexity__perplexity_search`) for every high-impact Branch Map fork that requires external data.
+- Wrap each query in a short brief (fork ID, question, success criteria) and record RT-IDs plus citations in `research.md`.
+- Minimum deliverables per research run:
+  - Source list with URLs and publication dates
+  - 3–5 key insights mapped back to decision points
+  - Recommendation + confidence level
+- Escalate via `/speckit.clarify` if Perplexity results fail recency/authority checks.
 
 ### Implementor Sub‑Agent (Tasks Executor)
 Input: tasks.md, plan.md, research.md, data-model.md, contracts/, quickstart.md.
@@ -375,6 +385,24 @@ Contract (must follow, no autonomy):
 - Hygiene: Update tasks.md checkboxes on completion; do not modify spec/plan without an approved change.
 
 Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). This file should restate the Agent Execution Contract and reporting format.
+
+### Sub-Agent Orchestration
+
+| Phase | Trigger | Delegation Target | Required Outputs |
+|-------|---------|-------------------|------------------|
+| Research | Branch Map forks with open questions | `research` sub-agent (Perplexity MCP) | RT-IDs, citations, recommendation summary |
+| Implementation | `/speckit.implement` kickoff | `implementor` sub-agent (`agents/codex/agents.md`) | Task JSON logs, updated `tasks.md` checkboxes |
+| Review | After implementor finishes or when diff exists | `review` sub-agent (`agents/review.md`) | Findings-first report (issues ordered by severity) |
+
+- Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and `agent: "review"` for mandatory code review.
+- Each delegation must specify `cwd`, sandbox mode, approval policy, and whether to mirror the repo (implementor typically `mirror_repo=true` to keep git metadata; research and review can stay read-only).
+- Conversation Codex thread remains the coordinator: summarize incoming artifacts, decide next command (`/speckit.*`), and surface review findings to the human before accepting changes.
+- Reference personas live in `.codex/agents/*.md`, with `.codex/scripts/run-subagents.sh` + `.codex/config.toml` auto-wired by the release script so Codex CLI can launch the MCP sub-agent server out of the box.
+
+- Applicable scenarios:
+  - **Full-stack build**: run the entire Spec → Plan → Tasks pipeline, then delegate implementation and review.
+  - **Refactor / bug fix**: document the delta in `spec.md`, run targeted research if external behavior changes, then delegate implementation + review.
+  - **Precise edit / hotfix**: even for single-file edits, Codex must hand work to the implementor (respecting tasks scope) and finish with a review report before merge.
 
 ### UI/UX Requirements (Plan-Level)
 - Visual tokens: colors, typography, spacing, radii, shadows, motion, breakpoints.
@@ -393,3 +421,4 @@ Bundle should include: specs/<feature>/* and (optionally) agents/codex/agents.md
 ### Starting and Handoff Prompts
 - Start: “/speckit.constitution …” then “/speckit.specify …”
 - Handoff: “/speckit.implement” to spawn the implementor sub‑agent following tasks.md under the Agent Execution Contract.
+- Close: “/speckit.review” (or manual delegate call) to run the review sub-agent once implementation tasks complete; block shipping until findings are resolved or explicitly waived.

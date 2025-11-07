@@ -15,6 +15,15 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
   - `contracts/` (OpenAPI/GraphQL and other interface specs)
   - `quickstart.md`
 
+## Upstream Orchestrator Expectations
+
+- This implementor is launched via `mcp__subagents__delegate` with `agent: "implementor"` and `mirror_repo: true` so git metadata (diffs, branches) stay available.
+- The coordinating Codex conversation must:
+  - Provide absolute repo paths plus feature slug via delegation arguments.
+  - Share any relevant waivers or clarifications collected during `/speckit.plan` Checkpoint B or `/speckit.tasks` Checkpoint C.
+  - Guarantee that Perplexity-backed research (RT-IDs + citations) already lives in `research.md`; implementor should not redo external research.
+- After this implementor finishes (or hits BLOCKED), control returns to the primary Codex assistant, which must immediately trigger the `review` sub-agent for code validation.
+
 ## Non‑Negotiable Contract
 
 - Allowed:
@@ -35,7 +44,7 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
 
 ## Execution Protocol
 
-1) Pre‑flight checks
+1) Pre-flight checks
 - Load `plan.md` and verify Plan DOR items:
   - Design system/library decision pinned (with versions)
   - Visual tokens present (colors/type/spacing/radii/shadows/motion/breakpoints)
@@ -74,6 +83,26 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
   - Build or tests if present in plan/tasks
   - Basic lint/format if configured
   - If validation fails: STOP and emit FAILED or BLOCKED depending on cause
+
+## Escalation Workflow (when BLOCKED)
+
+When any BLOCKED condition is detected, STOP immediately and follow this workflow:
+
+1. **Identify source artifact**:
+   - Spec gap (missing acceptance criteria, open `[NEEDS CLARIFICATION]`, contradictory requirements) → upstream command `/speckit.specify` and/or `/speckit.clarify`.
+   - Plan gap (missing tokens, incomplete component map, unpinned libraries, absent interaction contracts) → `/speckit.plan` Phase 1 redo (Checkpoint B).
+   - Tasks gap (missing Agent Execution Contract, traceability table, vague task) → `/speckit.tasks` regeneration (Checkpoint C).
+2. **Map to Branch Map fork**: note which Impact × Uncertainty fork caused the block (e.g., “auth method undecided”, “UI component unmapped”).
+3. **Notify user**: output a BLOCKED note specifying:
+   - Task ID currently blocked
+   - Required upstream command to rerun
+   - Missing detail and Branch Map fork
+   - Suggested question(s) to resolve
+4. **Await instruction**: Do not proceed until the user confirms the upstream artifact has been updated and provides either:
+   - The clarified detail inline, or
+   - Approval to rerun the relevant `/speckit.*` command and resume.
+
+If multiple BLOCKED issues stem from the same artifact, report them together so the user can address them in one pass.
 
 ## Reporting Format
 
@@ -133,6 +162,7 @@ Notes:
 - Never modify `spec.md`, `plan.md`, `research.md` directly. If a change is required, emit BLOCKED with a suggested upstream edit.
 - Do not delete or rename unrelated files unless explicitly specified in a task.
 - Prefer minimal, auditable changes aligned to each task.
+- You may never invent defaults, assumptions, or acceptance criteria. Any missing detail must flow through the Escalation Workflow above.
 
 ## Examples of BLOCKED Escalations
 
@@ -144,3 +174,12 @@ Notes:
 
 Run the higher‑level command documented at `templates/commands/implement.md` (e.g., `/speckit.implement`). This implementor must obey this guide while processing `tasks.md`.
 
+## Post-Implementation Review Handoff
+
+When all reachable tasks are DONE (or a BLOCKED report is emitted):
+- Emit the per-task JSON log plus final summary JSON described above.
+- Return control to the orchestrating Codex thread with:
+  - Location of updated files / git status
+  - Any outstanding risks or TODOs
+  - Explicit recommendation: `READY_FOR_REVIEW` or `BLOCKED`
+- Orchestrator must then delegate to the `review` agent (via `mcp__subagents__delegate`, `agent: "review"`) with the diff scope and relevant spec/plan pointers so no code ships without an independent findings-first report.

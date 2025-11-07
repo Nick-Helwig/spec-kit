@@ -25,6 +25,16 @@ description: "Task list template for feature implementation"
 |---------|------------|--------|--------|
 | T###    | US1        | FR-xxx | SC-xxx |
 
+## Branch Map Snapshot (Tasks)
+
+- Fork: [describe choice affecting task sequencing] — Impact: [H/M/L], Uncertainty: [H/M/L], Status: [Answered/Deferred], Resolution: [link to clarification or RT-ID]
+
+## Checkpoint C Summary (User Approval Before Writing)
+
+- Date: [YYYY-MM-DD]
+- Open assumptions approved by user: [list or "None"]
+- User decision / command reference: [e.g., "Approved via chat message ..."]
+
 ## Format: `[ID] [P?] [Story] Description`
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
@@ -267,5 +277,4 @@ With multiple developers:
 - [ ] All tasks follow required format (checkbox, T###, [P?], [US?], file path)
 - [ ] Traceability filled for all tasks (US/FR/SC)
 - [ ] Each user story has independent test criteria and ACs
-
 

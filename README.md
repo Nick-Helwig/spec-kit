@@ -96,6 +96,9 @@ Use the **`/speckit.constitution`** command to create your project's governing p
 
 Use the **`/speckit.specify`** command to describe what you want to build. Focus on the **what** and **why**, not the tech stack.
 
+> **Branch Map & Clarifications**  
+> Every `/speckit.specify` run now requires a Branch Map of the biggest forks (e.g., “web vs desktop,” “framework A vs B”). Rank each fork by **Impact × Uncertainty**, spend up to four clarification questions on the highest‑ranked forks, and record every unresolved item as `[NEEDS CLARIFICATION]`. Specs must pause until those answers come from you—agents are no longer allowed to “fill in” missing scope.
+
 ```bash
 /speckit.specify Build an application that can help me organize my photos in separate photo albums. Albums are grouped by date and can be re-organized by dragging and dropping on the main page. Albums are never in other nested albums. Within each album, photos are previewed in a tile-like interface.
 ```
@@ -104,6 +107,11 @@ Use the **`/speckit.specify`** command to describe what you want to build. Focus
 
 Use the **`/speckit.plan`** command to provide your tech stack and architecture choices.
 
+> **Checkpoint A & B**  
+> Planning now runs in two gated passes:  
+> • **Phase 0 (Checkpoint A)** – Research builds a Branch Map, spends ≤4 questions, and outputs `research.md` plus unresolved forks for your review.  
+> • **Phase 1 (Checkpoint B)** – After you approve Phase 0, plan artifacts (`plan.md`, `data-model.md`, `contracts/`, `quickstart.md`) are drafted and paused for another approval before agent contexts are updated or libraries pinned.
+
 ```bash
 /speckit.plan The application uses Vite with minimal number of libraries. Use vanilla HTML, CSS, and JavaScript as much as possible. Images are not uploaded anywhere and metadata is stored in a local SQLite database.
 ```
@@ -111,6 +119,9 @@ Use the **`/speckit.plan`** command to provide your tech stack and architecture 
 ### 5. Break down into tasks
 
 Use **`/speckit.tasks`** to create an actionable task list from your implementation plan.
+
+> **Checkpoint C & Ultra‑explicit tasks**  
+> Task generation now verifies Plan/Spec Definition‑of‑Ready, rebuilds a Branch Map, and pauses for your approval (Checkpoint C) before writing `tasks.md`. Each task must embed all relevant context (file paths, entities, endpoints, acceptance criteria, RT‑IDs) because individual sub‑agents will execute them with no extra memory.
 
 ```bash
 /speckit.tasks
@@ -122,6 +133,14 @@ Use **`/speckit.implement`** to execute all tasks and build your feature accordi
 
 ```bash
 /speckit.implement
+```
+
+### 7. Run the mandatory code review
+
+Immediately after implementation, run **`/speckit.review`** to delegate code review to the dedicated review sub-agent before merging or deploying.
+
+```bash
+/speckit.review
 ```
 
 For detailed step-by-step instructions, see our [comprehensive guide](./spec-driven.md).
@@ -232,6 +251,7 @@ Essential commands for the Spec-Driven Development workflow:
 | `/speckit.plan`          | Create technical implementation plans with your chosen tech stack     |
 | `/speckit.tasks`         | Generate actionable task lists for implementation                     |
 | `/speckit.implement`     | Execute all tasks to build the feature according to the plan         |
+| `/speckit.review`        | Run the findings-first review sub-agent before merge/deploy          |
 
 #### Optional Commands
 
@@ -368,7 +388,7 @@ Go to the project folder and run your AI agent. In our example, we're using `cla
 
 ![Bootstrapping Claude Code environment](./media/bootstrap-claude-code.gif)
 
-You will know that things are configured correctly if you see the `/speckit.constitution`, `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, and `/speckit.implement` commands available.
+You will know that things are configured correctly if you see the `/speckit.constitution`, `/speckit.specify`, `/speckit.plan`, `/speckit.tasks`, `/speckit.implement`, and `/speckit.review` commands available.
 
 The first step should be establishing your project's governing principles using the `/speckit.constitution` command. This helps ensure consistent decision-making throughout all subsequent development phases:
 
@@ -381,6 +401,9 @@ This step creates or updates the `.specify/memory/constitution.md` file with you
 ### **STEP 2:** Create project specifications
 
 With your project principles established, you can now create the functional specifications. Use the `/speckit.specify` command and then provide the concrete requirements for the project you want to develop.
+
+> **Branch Map Required**  
+> Before drafting the spec, build a Branch Map of the highest-impact forks (e.g., platform, workflow, auth strategy). Rank each fork by Impact × Uncertainty, spend up to four clarification questions on the top items, and record every unresolved high-impact fork as `[NEEDS CLARIFICATION]`. Do not continue until the user answers or explicitly defers them.
 
 >[!IMPORTANT]
 >Be as explicit as possible about _what_ you are trying to build and _why_. **Do not focus on the tech stack at this point**.
@@ -464,6 +487,10 @@ It's important to use the interaction with Claude Code as an opportunity to clar
 ### **STEP 4:** Generate a plan
 
 You can now be specific about the tech stack and other technical requirements. You can use the `/speckit.plan` command that is built into the project template with a prompt like this:
+
+> **Checkpoint A & B**  
+> Planning runs in two user-approved passes: Phase 0 research (Checkpoint A) and Phase 1 design/contracts (Checkpoint B). Each phase builds its own Branch Map, spends a ≤4 question budget, and pauses for your approval before continuing. No plan artifacts, data models, contracts, or agent-context updates are finalized until you respond with `continue`.  
+> ✅ Tip: Run `scripts/bash/lint-branchmap.sh specs/<feature-dir>` after Phase 1 to confirm plan.md includes the Branch Map + checkpoint summaries before moving on.
 
 ```text
 We are going to generate this using .NET Aspire, using Postgres as the database. The frontend should use
@@ -551,6 +578,10 @@ You can also ask Claude Code (if you have the [GitHub CLI](https://docs.github.c
 
 With the implementation plan validated, you can now break down the plan into specific, actionable tasks that can be executed in the correct order. Use the `/speckit.tasks` command to automatically generate a detailed task breakdown from your implementation plan:
 
+> **Checkpoint C + Self-contained tasks**  
+> `/speckit.tasks` will first verify Plan/Spec Definition-of-Ready, rebuild a Branch Map with a ≤4 question budget, and summarize the proposed phases back to you. Only after you approve Checkpoint C will it write `tasks.md`. Each generated task must include the exact file path plus the relevant entities, contracts, acceptance criteria, and RT-IDs because different implementor sub-agents work from these tasks with zero additional context.  
+> ✅ Tip: Re-run `scripts/bash/lint-branchmap.sh specs/<feature-dir>` after Checkpoint C to ensure `tasks.md` contains the Branch Map snapshot and approval notes before handing off to `/speckit.implement`.
+
 ```text
 /speckit.tasks
 ```
@@ -585,6 +616,22 @@ The `/speckit.implement` command will:
 >The AI agent will execute local CLI commands (such as `dotnet`, `npm`, etc.) - make sure you have the required tools installed on your machine.
 
 Once the implementation is complete, test the application and resolve any runtime errors that may not be visible in CLI logs (e.g., browser console errors). You can copy and paste such errors back to your AI agent for resolution.
+
+### **STEP 8:** Mandatory findings-first review
+
+Before merging or deploying, run the `/speckit.review` command to delegate the diff to the dedicated review sub-agent:
+
+```text
+/speckit.review
+```
+
+This command packages the latest diff, spec/plan/tasks references, and testing status, then launches the read-only reviewer to:
+
+- Produce a severity-ordered list of issues mapped to spec requirements and task IDs
+- Verify that tests and quality gates requested in plan/tasks actually ran
+- Issue a verdict (`BLOCK`, `CHANGES REQUESTED`, or `APPROVED`) plus actionable next steps
+
+Treat Critical/High findings as blockers until the fixes land or you document an explicit waiver.
 
 </details>
 

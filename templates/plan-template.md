@@ -9,6 +9,26 @@
 
 [Extract from feature spec: primary requirement + technical approach from research]
 
+## Branch Map & Checkpoints
+
+<!--
+  Use this section to capture the Impact × Uncertainty ranking and checkpoint outcomes.
+  Populate it during /speckit.plan Phase 0 (Checkpoint A) and Phase 1 (Checkpoint B).
+-->
+
+### Branch Map Snapshot
+- Fork: [describe choice] — Impact: [H/M/L], Uncertainty: [H/M/L], Status: [Answered/Deferred], Resolution: [link to clarification or RT-ID]
+
+### Checkpoint A Summary (Research Approval)
+- Date: [YYYY-MM-DD]
+- Outstanding forks deferred to user: [list or "None"]
+- User decision / command reference: [e.g., "Approved via chat message ..."]
+
+### Checkpoint B Summary (Plan Approval)
+- Date: [YYYY-MM-DD]
+- Pending assumptions: [list or "None"]
+- User approval notes: [e.g., "Approved after Branch Map review"]
+
 ## Technical Context
 
 <!--

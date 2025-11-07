@@ -1112,6 +1112,7 @@ def init(
     steps_lines.append("   2.3 [cyan]/speckit.plan[/] - Create implementation plan")
     steps_lines.append("   2.4 [cyan]/speckit.tasks[/] - Generate actionable tasks")
     steps_lines.append("   2.5 [cyan]/speckit.implement[/] - Execute implementation")
+    steps_lines.append("   2.6 [cyan]/speckit.review[/] - Run findings-first review before merge/deploy")
 
     steps_panel = Panel("\n".join(steps_lines), title="Next Steps", border_style="cyan", padding=(1,2))
     console.print()

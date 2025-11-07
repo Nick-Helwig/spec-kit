@@ -46,7 +46,12 @@ You **MUST** consider the user input before proceeding (if not empty).
      * Display the table showing all checklists passed
      * Automatically proceed to step 3
 
-3. Load and analyze the implementation context:
+3. **Verify Branch Map checkpoints (required)**:
+   - Run `bash scripts/bash/lint-branchmap.sh "$FEATURE_DIR"` (or `sh` as appropriate) to ensure `plan.md` and `tasks.md` contain the Branch Map + Checkpoint summaries.
+   - If the script fails, **STOP** and instruct the user to rerun `/speckit.plan` or `/speckit.tasks` to populate the missing sections before implementation begins.
+   - Record any outstanding assumptions noted in Checkpoint A/B/C summaries; they must be resolved or explicitly waived in writing before touching code.
+
+4. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
    - **IF EXISTS**: Read data-model.md for entities and relationships
@@ -54,79 +59,108 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **IF EXISTS**: Read research.md for technical decisions and constraints
    - **IF EXISTS**: Read quickstart.md for integration scenarios
 
-4. **Project Setup Verification**:
+5. **Launch the implementor sub-agent**:
+   - Compile a delegation brief containing:
+     * Absolute repo path + FEATURE_DIR
+     * Paths to spec.md, plan.md, tasks.md, research.md, data-model.md, contracts/, quickstart.md (when present)
+     * Outstanding waivers/assumptions noted in Checkpoints A/B/C
+     * Any checklist warnings from Step 2
+     * The "Implementor Sub-Agent Responsibilities" section below (copy/paste or reference explicitly)
+   - Call `mcp__subagents__delegate` with:
+     * `agent`: `"implementor"`
+     * `cwd`: repo root
+     * `mirror_repo`: `true` (preserves git metadata)
+     * `sandbox_mode`: `"workspace-write"`
+     * `approval_policy`: `"on-request"` (or stricter if required)
+     * `task`: delegation brief from above
+   - Instruct the implementor to emit task-level JSON plus a final summary as defined in `agents/codex/agents.md`.
+
+6. **Handle implementor output**:
+   - If the sub-agent reports `BLOCKED` or `FAILED`, stop and surface the blocker plus required upstream command (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`). Do not continue until the user resolves it.
+   - If DONE, capture:
+     * Updated files / git status
+     * Task log + summary JSON
+     * Any residual risks or TODOs lifted by the implementor
+
+7. **Mandatory review**:
+   - Immediately run `/speckit.review` (template below) **or** delegate manually via `mcp__subagents__delegate` with `agent: "review"` using the current diff, spec/plan references, and testing status.
+   - The review agent must return a findings-first report with severity-ranked issues, explicit APPROVE/BLOCK verdict, and test coverage notes. Do not ship code until high/critical findings are resolved or waived in writing.
+
+8. **Report**:
+   - Present implementor summary, review findings, outstanding risks, and recommended next steps (e.g., rerun `/speckit.tasks` for new scope, deploy, etc.).
+   - Archive task/review JSON artifacts in the feature directory if required by the team.
+
+Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
+
+## Implementor Sub-Agent Responsibilities
+
+Include the following contract/instructions inside the delegation brief for the `implementor` sub-agent. The implementor must perform these steps while executing tasks.md:
+
+1. **Project Setup Verification**
    - **REQUIRED**: Create/verify ignore files based on actual project setup:
    
-   **Detection & Creation Logic**:
-   - Check if the following command succeeds to determine if the repository is a git repo (create/verify .gitignore if so):
+     **Detection & Creation Logic**:
+     - Determine if the repository is a git repo (create/verify .gitignore if so):
 
-     ```sh
-     git rev-parse --git-dir 2>/dev/null
-     ```
-   - Check if Dockerfile* exists or Docker in plan.md → create/verify .dockerignore
-   - Check if .eslintrc* or eslint.config.* exists → create/verify .eslintignore
-   - Check if .prettierrc* exists → create/verify .prettierignore
-   - Check if .npmrc or package.json exists → create/verify .npmignore (if publishing)
-   - Check if terraform files (*.tf) exist → create/verify .terraformignore
-   - Check if .helmignore needed (helm charts present) → create/verify .helmignore
+       ```sh
+       git rev-parse --git-dir 2>/dev/null
+       ```
+     - Check if Dockerfile* exists or Docker in plan.md → create/verify .dockerignore
+     - Check if .eslintrc* or eslint.config.* exists → create/verify .eslintignore
+     - Check if .prettierrc* exists → create/verify .prettierignore
+     - Check if .npmrc or package.json exists → create/verify .npmignore (if publishing)
+     - Check if terraform files (*.tf) exist → create/verify .terraformignore
+     - Check if .helmignore needed (helm charts present) → create/verify .helmignore
    
-   **If ignore file already exists**: Verify it contains essential patterns, append missing critical patterns only
-   **If ignore file missing**: Create with full pattern set for detected technology
+     **If ignore file already exists**: Verify it contains essential patterns; append missing critical patterns only.
    
-   **Common Patterns by Technology** (from plan.md tech stack):
-   - **Node.js/JavaScript**: `node_modules/`, `dist/`, `build/`, `*.log`, `.env*`
-   - **Python**: `__pycache__/`, `*.pyc`, `.venv/`, `venv/`, `dist/`, `*.egg-info/`
-   - **Java**: `target/`, `*.class`, `*.jar`, `.gradle/`, `build/`
-   - **C#/.NET**: `bin/`, `obj/`, `*.user`, `*.suo`, `packages/`
-   - **Go**: `*.exe`, `*.test`, `vendor/`, `*.out`
-   - **Ruby**: `.bundle/`, `log/`, `tmp/`, `*.gem`, `vendor/bundle/`
-   - **PHP**: `vendor/`, `*.log`, `*.cache`, `*.env`
-   - **Rust**: `target/`, `debug/`, `release/`, `*.rs.bk`, `*.rlib`, `*.prof*`, `.idea/`, `*.log`, `.env*`
-   - **Kotlin**: `build/`, `out/`, `.gradle/`, `.idea/`, `*.class`, `*.jar`, `*.iml`, `*.log`, `.env*`
-   - **C++**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.so`, `*.a`, `*.exe`, `*.dll`, `.idea/`, `*.log`, `.env*`
-   - **C**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.a`, `*.so`, `*.exe`, `Makefile`, `config.log`, `.idea/`, `*.log`, `.env*`
-   - **Universal**: `.DS_Store`, `Thumbs.db`, `*.tmp`, `*.swp`, `.vscode/`, `.idea/`
+     **If ignore file missing**: Create with full pattern set for detected technology.
    
-   **Tool-Specific Patterns**:
-   - **Docker**: `node_modules/`, `.git/`, `Dockerfile*`, `.dockerignore`, `*.log*`, `.env*`, `coverage/`
-   - **ESLint**: `node_modules/`, `dist/`, `build/`, `coverage/`, `*.min.js`
-   - **Prettier**: `node_modules/`, `dist/`, `build/`, `coverage/`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
-   - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
+     **Common Patterns by Technology** (from plan.md tech stack):
+     - **Node.js/JavaScript**: `node_modules/`, `dist/`, `build/`, `*.log`, `.env*`
+     - **Python**: `__pycache__/`, `*.pyc`, `.venv/`, `venv/`, `dist/`, `*.egg-info/`
+     - **Java**: `target/`, `*.class`, `*.jar`, `.gradle/`, `build/`
+     - **C#/.NET**: `bin/`, `obj/`, `*.user`, `*.suo`, `packages/`
+     - **Go**: `*.exe`, `*.test`, `vendor/`, `*.out`
+     - **Ruby**: `.bundle/`, `log/`, `tmp/`, `*.gem`, `vendor/bundle/`
+     - **PHP**: `vendor/`, `*.log`, `*.cache`, `*.env`
+     - **Rust**: `target/`, `debug/`, `release/`, `*.rs.bk`, `*.rlib`, `*.prof*`, `.idea/`, `*.log`, `.env*`
+     - **Kotlin**: `build/`, `out/`, `.gradle/`, `.idea/`, `*.class`, `*.jar`, `*.iml`, `*.log`, `.env*`
+     - **C++**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.so`, `*.a`, `*.exe`, `*.dll`, `.idea/`, `*.log`, `.env*`
+     - **C**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.a`, `*.so`, `*.exe`, `Makefile`, `config.log`, `.idea/`, `*.log`, `.env*`
+     - **Universal**: `.DS_Store`, `Thumbs.db`, `*.tmp`, `*.swp`, `.vscode/`, `.idea/`
+   
+     **Tool-Specific Patterns**:
+     - **Docker**: `node_modules/`, `.git/`, `Dockerfile*`, `.dockerignore`, `*.log*`, `.env*`, `coverage/`
+     - **ESLint**: `node_modules/`, `dist/`, `build/`, `coverage/`, `*.min.js`
+     - **Prettier**: `node_modules/`, `dist/`, `build/`, `coverage/`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
+     - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
 
-5. Parse tasks.md structure and extract:
-   - **Task phases**: Setup, Tests, Core, Integration, Polish
-   - **Task dependencies**: Sequential vs parallel execution rules
-   - **Task details**: ID, description, file paths, parallel markers [P]
-   - **Execution flow**: Order and dependency requirements
+2. **Parse tasks.md structure and extract**
+   - Identify task phases (Setup, Tests, Core, Integration, Polish).
+   - Capture dependencies (sequential vs parallel) and file/path assignments.
+   - Understand execution order plus required validation steps.
 
-6. Execute implementation following the task plan:
-   - **Phase-by-phase execution**: Complete each phase before moving to the next
-   - **Respect dependencies**: Run sequential tasks in order, parallel tasks [P] can run together  
-   - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
-   - **File-based coordination**: Tasks affecting the same files must run sequentially
-   - **Validation checkpoints**: Verify each phase completion before proceeding
+3. **Execute implementation following the task plan**
+   - Work phase-by-phase; complete prerequisites before moving forward.
+   - Respect dependencies (sequential vs `[P]` parallel tasks).
+   - Follow TDD instructions: run/add tests before implementation when tasks require it.
+   - Coordinate file edits to avoid conflicts (parallel tasks only if files differ).
+   - Run validation (tests, linters) at the close of each phase when tasks specify it.
 
-7. Implementation execution rules:
-   - **Setup first**: Initialize project structure, dependencies, configuration
-   - **Tests before code**: If you need to write tests for contracts, entities, and integration scenarios
-   - **Core development**: Implement models, services, CLI commands, endpoints
-   - **Integration work**: Database connections, middleware, logging, external services
-   - **Polish and validation**: Unit tests, performance optimization, documentation
+4. **Implementation execution rules**
+   - Setup before feature work.
+   - Prioritize tests when specified.
+   - Implement models/services/endpoints per plan.
+   - Handle integration/polish tasks last (monitoring, docs, perf).
 
-8. Progress tracking and error handling:
-   - Report progress after each completed task
-   - Halt execution if any non-parallel task fails
-   - For parallel tasks [P], continue with successful tasks, report failed ones
-   - Provide clear error messages with context for debugging
-   - Suggest next steps if implementation cannot proceed
-   - **IMPORTANT** For completed tasks, make sure to mark the task off as [X] in the tasks file.
+5. **Progress tracking and error handling**
+   - After each task, update its checkbox (`- [ ]` → `- [X]`) and emit JSON log entry (DONE/BLOCKED/FAILED/SKIPPED).
+   - Stop immediately on BLOCKED conditions (missing plan detail, unmapped UI component, contract mismatch) and bubble blocker to orchestrator.
+   - Provide clear remediation guidance for failures (commands run, errors, files touched).
 
-9. Completion validation:
-   - Verify all required tasks are completed
-   - Check that implemented features match the original specification
-   - Validate that tests pass and coverage meets requirements
-   - Confirm the implementation follows the technical plan
-   - Report final status with summary of completed work
-
-Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/tasks` first to regenerate the task list.
-
+6. **Completion validation**
+   - Verify all tasks that can run are completed.
+   - Confirm implementation matches spec/plan + RT-IDs.
+   - Ensure tests pass, coverage expectations met, and lint/format run when required.
+   - Produce final summary JSON with totals/by-phase counts and STOP status (READY_FOR_REVIEW vs BLOCKED).
