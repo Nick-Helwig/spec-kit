@@ -420,8 +420,8 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
         f"{args_block}\n"
         "]\n"
         f'env = {{ CODEX_HOME = "{home_str}" }}\n'
-        "startup_timeout_sec = 120\n"
-        "tool_timeout_sec = 300\n"
+        "startup_timeout_sec = 1800\n"
+        "tool_timeout_sec = 1800\n"
     )
 
     # Ensure deterministic features block
