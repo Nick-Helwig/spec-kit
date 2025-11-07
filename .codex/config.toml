@@ -1,5 +1,6 @@
 [features]
 web_search_request = true
+experimental_use_rmcp_client = true
 
 [sandbox_workspace_write]
 network_access = true

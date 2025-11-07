@@ -368,6 +368,14 @@ def _toml_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
 
 
+FEATURE_SECTION = (
+    "[features]\n"
+    "web_search_request = true\n"
+    "experimental_use_rmcp_client = true\n"
+)
+FEATURE_BLOCK_PATTERN = re.compile(r"(?ms)^\[features\]\n(?:[^\[]*\n?)*?(?=^\[|\Z)")
+
+
 def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None = None) -> bool:
     """Rewrite the MCP server section to launch codex-subagents directly with --agents-dir."""
     config_path = project_path / ".codex" / "config.toml"
@@ -415,6 +423,10 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
         "startup_timeout_sec = 120\n"
         "tool_timeout_sec = 300\n"
     )
+
+    # Ensure deterministic features block
+    config_text = FEATURE_BLOCK_PATTERN.sub("", config_text).lstrip("\n")
+    config_text = FEATURE_SECTION + ("\n" + config_text if config_text else "")
 
     if CODEX_CONFIG_SECTION_PATTERN.search(config_text):
         new_text = CODEX_CONFIG_SECTION_PATTERN.sub(new_section + "\n", config_text)
