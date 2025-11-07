@@ -15,23 +15,28 @@ args = [
   "--agents-dir",
   "/ABSOLUTE/PATH/TO/PROJECT/agents"
 ]
+env = { CODEX_HOME = "/ABSOLUTE/PATH/TO/PROJECT/.codex" }
 
 [profiles.research]
-model = "gpt-5-high"
+model = "gpt-5"
+model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "read-only"
 
 [profiles.implementor]
-model = "gpt-codex-medium"
+model = "gpt-codex"
+model_reasoning_effort = "medium"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 [profiles.orchestrator]
-model = "gpt-5-high"
+model = "gpt-5"
+model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
 [profiles.review]
-model = "gpt-codex-high"
+model = "gpt-codex"
+model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "read-only"

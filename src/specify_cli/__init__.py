@@ -382,9 +382,11 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
 
     resolved_server = Path(os.path.abspath(str((server_js or get_codex_server_js()).expanduser())))
     agents_dir = Path(os.path.abspath(str(_codex_agents_dir(project_path))))
+    codex_home = Path(os.path.abspath(str((project_path / ".codex").expanduser())))
 
     server_str = _toml_escape(resolved_server.as_posix())
     agents_str = _toml_escape(agents_dir.as_posix())
+    home_str = _toml_escape(codex_home.as_posix())
 
     if os.name == "nt":
         command = "node"
@@ -409,6 +411,7 @@ def configure_codex_mcp_settings(project_path: Path, *, server_js: Path | None =
         "args = [\n"
         f"{args_block}\n"
         "]\n"
+        f'env = {{ CODEX_HOME = "{home_str}" }}\n'
     )
 
     if CODEX_CONFIG_SECTION_PATTERN.search(config_text):
@@ -1244,13 +1247,9 @@ def init(
     # Add Codex-specific setup step if needed
     if selected_ai == "codex":
         codex_path = project_path / ".codex"
-        quoted_path = shlex.quote(str(codex_path))
-        if os.name == "nt":  # Windows
-            cmd = f"setx CODEX_HOME {quoted_path}"
-        else:  # Unix-like systems
-            cmd = f"export CODEX_HOME={quoted_path}"
-        
-        steps_lines.append(f"{step_num}. Set [cyan]CODEX_HOME[/cyan] environment variable before running Codex: [cyan]{cmd}[/cyan]")
+        steps_lines.append(
+            f"{step_num}. Codex CLI home is pinned automatically to [cyan]{codex_path}[/cyan] (no manual env export needed)."
+        )
         step_num += 1
         server_display = (
             codex_server_js_path.as_posix()
