@@ -26,6 +26,11 @@ model = "gpt-codex-medium"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
+[profiles.orchestrator]
+model = "gpt-5-high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
 [profiles.review]
 model = "gpt-codex-high"
 approval_policy = "on-request"

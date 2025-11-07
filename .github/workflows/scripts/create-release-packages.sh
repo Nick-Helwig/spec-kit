@@ -171,6 +171,10 @@ build_variant() {
         cp -R .codex/. "$base_dir/.codex/"
         echo "Copied .codex assets -> .codex"
       fi
+      if [[ -d agents ]]; then
+        cp -R agents "$base_dir/agents"
+        echo "Copied agents -> agents"
+      fi
       mkdir -p "$base_dir/.codex/prompts"
       generate_commands codex md "\$ARGUMENTS" "$base_dir/.codex/prompts" "$script" ;;
     kilocode)

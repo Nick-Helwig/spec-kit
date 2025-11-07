@@ -1,4 +1,4 @@
-# Codex Implementor Agent Guide
+# Codex Implementor Agent Guide (orchestrator companion)
 
 Purpose: This document instructs the Codex implementor sub‑agent to execute a Spec‑Kit feature using `tasks.md`, under strict contracts that prevent autonomous, ambiguous decisions.
 
@@ -27,7 +27,7 @@ Purpose: This document instructs the Codex implementor sub‑agent to execute a 
 
 ## SDD Command Runbook (No Skips Allowed)
 
-The Codex orchestrator must walk through every Spec-Driven Development command in order, loading the exact prompt template before execution so no gating step is skipped. For each command below:
+The Codex orchestrator (implemented in `agents/orchestrator.md`) must walk through every Spec-Driven Development command in order, loading the exact prompt template before execution so no gating step is skipped. For each command below:
 
 1. Open the template at `templates/commands/<command>.md`.
 2. Read the YAML frontmatter + body to understand required inputs, scripts, and approvals.

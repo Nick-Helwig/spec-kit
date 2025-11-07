@@ -398,7 +398,13 @@ Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). T
 - Each delegation must specify `cwd`, sandbox mode, approval policy, and whether to mirror the repo (implementor typically `mirror_repo=true` to keep git metadata; research and review can stay read-only).
 - Conversation Codex thread remains the coordinator: summarize incoming artifacts, decide next command (`/speckit.*`), and surface review findings to the human before accepting changes.
 - When you run `specify init --ai codex`, the CLI rewrites `.codex/config.toml` so the `subagents` MCP server launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override with `CODEX_SUBAGENTS_REPO`) **and** passes `--agents-dir <project>/agents` as required by the upstream server README. It also offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` once per machine; rerun with `--force` after pulling codex-subagents updates.
-- Reference personas live in `agents/*.md`, and Codex CLI loads them via the `--agents-dir` argument that Specify wires automatically.
+- Reference personas now live in `agents/*.md`:
+  - `agents/orchestrator.md` — entry point; runs `/speckit.*` commands, delegates research / implementor / review agents, enforces checkpoints.
+  - `agents/research.md` — Perplexity-backed research delegate.
+  - `agents/implementor.md` — executes `tasks.md` under the Agent Execution Contract.
+  - `agents/review.md` — findings-first reviewer.
+- Run all work through the orchestrator from the Codex conversation:  
+  `tools.call name=subagents.delegate agent="orchestrator" task="<goal>" cwd="<repo>" mirror_repo=true`
 
 - Applicable scenarios:
   - **Full-stack build**: run the entire Spec → Plan → Tasks pipeline, then delegate implementation and review.

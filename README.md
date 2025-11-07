@@ -138,6 +138,11 @@ Use **`/speckit.implement`** to execute all tasks and build your feature accordi
 > **Codex setup reminder**  
 > `specify init --ai codex` now rewrites `.codex/config.toml` so the Codex CLI launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override via `CODEX_SUBAGENTS_REPO`) and passes `--agents-dir <project>/agents`, exactly as required by the codex-subagents README. During init, you’ll be prompted once per machine to run `.codex/scripts/bootstrap-subagents.{sh,ps1}`; rerun the script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
 
+> **Codex orchestrator entry point**  
+> Route all Codex CLI work through the orchestrator persona located at `agents/orchestrator.md` so the Spec Kit gates stay intact:  
+> `tools.call name=subagents.delegate agent="orchestrator" task="<goal or /speckit.* command>" cwd="<repo>" mirror_repo=true`  
+> The orchestrator will load the correct template, ask clarifying questions, and delegate to the `research`, `implementor`, and `review` agents at the right checkpoints.
+
 ### 7. Run the mandatory code review
 
 Immediately after implementation, run **`/speckit.review`** to delegate code review to the dedicated review sub-agent before merging or deploying.
