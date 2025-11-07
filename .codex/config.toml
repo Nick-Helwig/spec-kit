@@ -7,13 +7,13 @@ network_access = true
 [mcp_servers.subagents]
 # Specify CLI rewrites this section with absolute paths during `specify init --ai codex`.
 # Directly start the codex-subagents MCP server and pass the project-specific agents directory
-# so the server loads custom personas before the handshake (per upstream README guidance).
+# (./agents) so the server loads custom personas before the handshake (per upstream README guidance).
 command = "/usr/bin/env"
 args = [
   "node",
   "/ABSOLUTE/PATH/TO/codex-subagents-mcp/dist/codex-subagents.mcp.js",
   "--agents-dir",
-  "/ABSOLUTE/PATH/TO/PROJECT/.codex/agents"
+  "/ABSOLUTE/PATH/TO/PROJECT/agents"
 ]
 
 [profiles.research]

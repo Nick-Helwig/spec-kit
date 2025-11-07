@@ -359,8 +359,8 @@ def get_codex_server_js() -> Path:
 
 
 def _codex_agents_dir(project_path: Path) -> Path:
-    """Absolute path to the project's .codex/agents directory."""
-    return (project_path / ".codex" / "agents").resolve()
+    """Absolute path to the project's root-level agents directory."""
+    return (project_path / "agents").resolve()
 
 
 def _toml_escape(value: str) -> str:
