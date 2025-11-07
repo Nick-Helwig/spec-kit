@@ -59,44 +59,66 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **IF EXISTS**: Read research.md for technical decisions and constraints
    - **IF EXISTS**: Read quickstart.md for integration scenarios
 
-5. **Launch the implementor sub-agent**:
+5. **Select the target task (single-task workflow)**:
+   - Parse `tasks.md` for unchecked tasks matching `- [ ] T### ...`.
+   - If the user input (`$ARGUMENTS`) supplies a task identifier (e.g., `T123`), validate it exists, is currently unchecked, and is eligible to run (no conflicting `[P]` grouping that touches the same files). If validation fails, stop and ask the user to choose a valid task.
+   - If no explicit Task ID is provided, choose the first unchecked task in document order. Capture its phase, `[P]` grouping, dependencies, required files/paths, validation commands, and any notes.
+   - If **no unchecked tasks remain**, stop and inform the user that implementation is complete for this feature (or that `/speckit.tasks` must be rerun to add scope) before attempting another `/speckit.implement`.
+   - Record the selected Task ID + metadata in your status update; the same identifier must be passed to both the implementor and reviewer delegates.
+
+6. **Create a fresh implementor worktree**:
+   ```bash
+   WORKTREE=.codex/worktrees/implementor-$FEATURE_DIR
+   git worktree remove "$WORKTREE" 2>/dev/null || true
+   git worktree add "$WORKTREE" HEAD
+   ```
+   Use this path as the implementor’s `cwd` for the selected task. After the delegate finishes, run `git worktree remove "$WORKTREE"` (or `rm -rf "$WORKTREE"` if already detached) before starting another session.
+
+7. **Launch the implementor sub-agent**:
    - Compile a delegation brief containing:
      * Absolute repo path + FEATURE_DIR
      * Paths to spec.md, plan.md, tasks.md, research.md, data-model.md, contracts/, quickstart.md (when present)
+     * The chosen Task ID, phase, `[P]` grouping, description, dependencies, file targets, and required validation commands/tests
      * Outstanding waivers/assumptions noted in Checkpoints A/B/C
      * Any checklist warnings from Step 2
-     * The "Implementor Sub-Agent Responsibilities" section below (copy/paste or reference explicitly)
+     * The "Implementor Sub-Agent Responsibilities" section below (copy/paste or reference explicitly), including the embedded **TDD** and **Error Handling Patterns** skill requirements from `agents/implementor.md`.
    - Call `mcp__subagents__delegate` with:
      * `agent`: `"implementor"`
-     * `cwd`: repo root
-     * `mirror_repo`: `true` (preserves git metadata)
+     * `cwd`: `.codex/worktrees/implementor-$FEATURE_DIR`
+     * `mirror_repo`: `false`
      * `sandbox_mode`: `"workspace-write"`
      * `approval_policy`: `"on-request"` (or stricter if required)
      * `task`: delegation brief from above
-   - Instruct the implementor to emit task-level JSON plus a final summary as defined in `agents/codex/agents.md`.
+   - Instruct the implementor to emit task-level JSON plus a final summary exactly as described under “Implementor Contract Snapshot” in `agents/orchestrator.md`, reminding them to complete **only** the delegated Task ID and stop immediately afterward.
 
-6. **Handle implementor output**:
+8. **Handle implementor output**:
    - If the sub-agent reports `BLOCKED` or `FAILED`, stop and surface the blocker plus required upstream command (`/speckit.specify`, `/speckit.plan`, `/speckit.tasks`). Do not continue until the user resolves it.
    - If DONE, capture:
      * Updated files / git status
      * Task log + summary JSON
      * Any residual risks or TODOs lifted by the implementor
+     * Confirmation that only the delegated Task ID checkbox flipped to `[x]`; if other tasks changed, revert and re-run the implementor with clarified scope.
 
-7. **Mandatory review**:
-   - Immediately run `/speckit.review` (template below) **or** delegate manually via `mcp__subagents__delegate` with `agent: "review"` using the current diff, spec/plan references, and testing status.
-   - The review agent must return a findings-first report with severity-ranked issues, explicit APPROVE/BLOCK verdict, and test coverage notes. Do not ship code until high/critical findings are resolved or waived in writing.
+9. **Mandatory review (per-task)**:
+   - Immediately run `/speckit.review` (template below) **or** delegate manually via `mcp__subagents__delegate` with `agent: "review"` using the same Task ID, current diff, spec/plan references, implementor JSON, and testing status.
+   - The review agent must return a findings-first report with severity-ranked issues scoped to that task, an explicit APPROVE/BLOCK verdict, and test coverage notes. Do not ship code until high/critical findings are resolved or waived in writing.
 
-8. **Report**:
-   - Present implementor summary, review findings, outstanding risks, and recommended next steps (e.g., rerun `/speckit.tasks` for new scope, deploy, etc.).
-   - Archive task/review JSON artifacts in the feature directory if required by the team.
+10. **Report**:
+    - Present the selected Task ID, implementor summary, review findings, outstanding risks, and recommended next steps (e.g., rerun `/speckit.tasks` for new scope, deploy, etc.).
+    - Archive task/review JSON artifacts in the feature directory if required by the team, and note whether the task is ACCEPTED or requires follow-up.
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
 
 ## Implementor Sub-Agent Responsibilities
 
-Include the following contract/instructions inside the delegation brief for the `implementor` sub-agent. The implementor must perform these steps while executing tasks.md:
+Include the following contract/instructions inside the delegation brief for the `implementor` sub-agent. They apply to the **single** Task ID delegated in this run:
 
-1. **Project Setup Verification**
+1. **Task intake & DOR checks**
+   - Verify Plan DOR (design system, tokens, component map, interaction contracts, RT-IDs) and Tasks DOR (Agent Execution Contract, traceability table, Branch Map checkpoints, `[NEEDS CLARIFICATION]` cleared).
+   - Confirm the orchestrator-supplied Task ID exists in `tasks.md`, is unchecked, and matches the description/phase/`[P]` notes provided in the brief. Halt with `BLOCKED` if anything is inconsistent.
+   - Capture dependencies, file/path targets, validation commands, and required libraries from plan.md/tasks.md/research.md.
+
+2. **Project Setup Verification**
    - **REQUIRED**: Create/verify ignore files based on actual project setup:
    
      **Detection & Creation Logic**:
@@ -135,32 +157,24 @@ Include the following contract/instructions inside the delegation brief for the 
      - **ESLint**: `node_modules/`, `dist/`, `build/`, `coverage/`, `*.min.js`
      - **Prettier**: `node_modules/`, `dist/`, `build/`, `coverage/`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
      - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
+   
+3. **Understand the assigned task context**
+   - Locate the delegated Task ID within `tasks.md` and note its phase (Setup, Foundational, USx, Polish, etc.), `[P]` grouping, and sequencing constraints.
+   - Document prerequisites and dependent tasks so you can flag a BLOCKED state if prerequisites are incomplete.
+   - Extract the exact files, directories, contracts, and validation commands referenced in the task description.
 
-2. **Parse tasks.md structure and extract**
-   - Identify task phases (Setup, Tests, Core, Integration, Polish).
-   - Capture dependencies (sequential vs parallel) and file/path assignments.
-   - Understand execution order plus required validation steps.
-
-3. **Execute implementation following the task plan**
-   - Work phase-by-phase; complete prerequisites before moving forward.
-   - Respect dependencies (sequential vs `[P]` parallel tasks).
-   - Follow TDD instructions: run/add tests before implementation when tasks require it.
-   - Coordinate file edits to avoid conflicts (parallel tasks only if files differ).
-   - Run validation (tests, linters) at the close of each phase when tasks specify it.
-
-4. **Implementation execution rules**
-   - Setup before feature work.
-   - Prioritize tests when specified.
-   - Implement models/services/endpoints per plan.
-   - Handle integration/polish tasks last (monitoring, docs, perf).
+4. **Execute the delegated task**
+   - Work strictly within this task’s scope; if `[P]` applies, ensure no conflicting files are touched.
+   - Follow TDD instructions: add/run failing tests first, implement minimal code, rerun tests to confirm GREEN, and refactor while staying green.
+   - Reuse mapped UI components and libraries pinned in plan.md; avoid new dependencies unless the task explicitly allows them.
+   - Run any validations/tests specified by the task before marking it complete.
 
 5. **Progress tracking and error handling**
-   - After each task, update its checkbox (`- [ ]` → `- [X]`) and emit JSON log entry (DONE/BLOCKED/FAILED/SKIPPED).
-   - Stop immediately on BLOCKED conditions (missing plan detail, unmapped UI component, contract mismatch) and bubble blocker to orchestrator.
-   - Provide clear remediation guidance for failures (commands run, errors, files touched).
+   - Update only the delegated task checkbox (`- [ ]` → `- [x]`) and emit a JSON log entry (DONE/BLOCKED/FAILED/SKIPPED) for that task.
+   - Stop immediately on BLOCKED conditions (missing plan detail, unmapped UI component, contract mismatch) and bubble the blocker to the orchestrator with remediation guidance.
+   - Include commands run, errors, files touched, and timestamps inside the JSON log.
 
 6. **Completion validation**
-   - Verify all tasks that can run are completed.
-   - Confirm implementation matches spec/plan + RT-IDs.
-   - Ensure tests pass, coverage expectations met, and lint/format run when required.
-   - Produce final summary JSON with totals/by-phase counts and STOP status (READY_FOR_REVIEW vs BLOCKED).
+   - Ensure the delegated task satisfies spec/plan requirements, RT-IDs, and any acceptance criteria/tests.
+   - Confirm tests/lint/build commands requested by the task pass cleanly (no warnings).
+   - Produce the final summary JSON for this single task with totals/by-phase counts and STOP status (`READY_FOR_REVIEW` vs `Await clarification`), then exit so the review agent can take over.

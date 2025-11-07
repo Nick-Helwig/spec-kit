@@ -374,28 +374,28 @@ Commands map to templates and DOR gates:
 - Escalate via `/speckit.clarify` if Perplexity results fail recency/authority checks.
 
 ### Implementor Sub‑Agent (Tasks Executor)
-Input: tasks.md, plan.md, research.md, data-model.md, contracts/, quickstart.md.
+Input: a single Task ID from `tasks.md` plus plan.md, research.md, data-model.md, contracts/, quickstart.md.
 
 Contract (must follow, no autonomy):
 - Allowed: Only libraries and versions pinned in plan.md.
 - Forbidden: Creating custom UI when a library equivalent exists; changing stack/versions; inventing defaults.
 - Escalation: Any missing plan/spec detail, unmapped UI element, or blocked dependency → mark BLOCKED and prompt for clarification.
-- Execution: Follow exact file paths; respect parallel markers [P]; adhere to TDD instructions when present.
-- Reporting: Emit JSON status per task (DONE|BLOCKED|FAILED|SKIPPED); stop on first BLOCKED and request waiver/clarification.
-- Hygiene: Update tasks.md checkboxes on completion; do not modify spec/plan without an approved change.
+- Execution: Each invocation handles exactly one Task ID—follow the specified file paths, respect `[P]` markers, adhere to TDD, and stop immediately after logging DONE/BLOCKED/FAILED for that task.
+- Reporting: Emit JSON status for the delegated task (DONE|BLOCKED|FAILED|SKIPPED); stop on first BLOCKED and request waiver/clarification.
+- Hygiene: Update only the delegated checkbox; do not modify spec/plan without an approved change.
 
-Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). This file should restate the Agent Execution Contract and reporting format.
+Handoff: The implementor contract lives inside `agents/orchestrator.md` (see “Implementor Delegation Packet” + “Implementor Contract Snapshot”). Keep that file in sync with plan/spec/tasks and reuse it when delegating the implementor sub-agent.
 
 ### Sub-Agent Orchestration
 
 | Phase | Trigger | Delegation Target | Required Outputs |
 |-------|---------|-------------------|------------------|
 | Research | Branch Map forks with open questions | `research` sub-agent (Perplexity MCP) | RT-IDs, citations, recommendation summary |
-| Implementation | `/speckit.implement` kickoff | `implementor` sub-agent (`agents/codex/agents.md`) | Task JSON logs, updated `tasks.md` checkboxes |
-| Review | After implementor finishes or when diff exists | `review` sub-agent (`agents/review.md`) | Findings-first report (issues ordered by severity) |
+| Implementation | Each `/speckit.implement` run (single Task ID) | `implementor` sub-agent (brief defined in `agents/orchestrator.md`) | Task-level JSON log + checkbox update |
+| Review | Immediately after each `/speckit.implement` run (same Task ID) or whenever a diff exists | `review` sub-agent (`agents/review.md`) | Findings-first report (issues ordered by severity) |
 
-- Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and `agent: "review"` for mandatory code review.
-- Each delegation must specify `cwd`, sandbox mode, approval policy, and whether to mirror the repo (implementor typically `mirror_repo=true` to keep git metadata; research and review can stay read-only).
+- Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and `agent: "review"` for mandatory code review. Each `/speckit.implement` run selects one unchecked Task ID (or the ID supplied via command input), and `/speckit.review <TaskID>` must immediately validate that exact change before moving to the next task.
+- Each delegation must specify `cwd`, sandbox mode, approval policy, and **set `mirror_repo=false`**. Codex only trusts explicit repo roots, so create a dedicated git worktree for every sub-agent invocation (instructions below) and pass that path as `cwd`.
 - Conversation Codex thread remains the coordinator: summarize incoming artifacts, decide next command (`/speckit.*`), and surface review findings to the human before accepting changes.
 - When you run `specify init --ai codex`, the CLI rewrites `.codex/config.toml` so the `subagents` MCP server launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override with `CODEX_SUBAGENTS_REPO`) **and** passes `--agents-dir <project>/agents` as required by the upstream server README. It also offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` once per machine; rerun with `--force` after pulling codex-subagents updates.
 - Reference personas now live in `agents/*.md`:
@@ -404,7 +404,27 @@ Handoff: Place implementor guidance in `agents/codex/agents.md` (recommended). T
   - `agents/implementor.md` — executes `tasks.md` under the Agent Execution Contract.
   - `agents/review.md` — findings-first reviewer.
 - Run all work through the orchestrator from the Codex conversation:  
-  `tools.call name=subagents.delegate agent="orchestrator" task="<goal>" cwd="<repo>" mirror_repo=true`
+  `tools.call name=subagents.delegate agent="orchestrator" task="<goal>" cwd="<.codex/worktrees/orchestrator-$FEATURE>" mirror_repo=false`
+- The orchestrator persona is responsible for invoking the `research`, `implementor`, and `review` delegates at the required checkpoints—do not bypass it by calling those agents directly from the main conversation.
+
+#### Required git worktrees (per agent)
+
+Use `.codex/worktrees/<agent>-<feature>` naming so each delegate gets an isolated but trusted checkout. Example workflow:
+
+```
+FEATURE=payments-onboarding
+WORKTREE_ROOT=.codex/worktrees
+mkdir -p "$WORKTREE_ROOT"
+git worktree remove "$WORKTREE_ROOT/orchestrator-$FEATURE" 2>/dev/null || true
+git worktree add "$WORKTREE_ROOT/orchestrator-$FEATURE" HEAD
+```
+
+- **Orchestrator:** `cwd=.codex/worktrees/orchestrator-$FEATURE` (workspace-write)
+- **Research:** `cwd=.codex/worktrees/research-$FEATURE` (read-only). Copy over any needed artifacts (spec/plan/tasks) or rely on git checkout.
+- **Implementor:** `cwd=.codex/worktrees/implementor-$FEATURE` (workspace-write)
+- **Review:** `cwd=.codex/worktrees/review-$FEATURE` (read-only)
+
+After each delegate finishes, run `git worktree remove <path>` (or `rm -rf` if the tree already detached) to keep the repo clean. Never reuse a worktree between different features without resetting it.
 
 - Applicable scenarios:
   - **Full-stack build**: run the entire Spec → Plan → Tasks pipeline, then delegate implementation and review.
@@ -423,7 +443,7 @@ Ready for implementor when:
 - Research completed with citations and RT‑IDs
 - Analyze report shows no CRITICAL/HIGH issues
 
-Bundle should include: specs/<feature>/* and (optionally) agents/codex/agents.md.
+Bundle should include: specs/<feature>/* and (optionally) updated excerpts from `agents/orchestrator.md` if the implementor contract changed for that feature.
 
 ### Starting and Handoff Prompts
 - Start: “/speckit.constitution …” then “/speckit.specify …”

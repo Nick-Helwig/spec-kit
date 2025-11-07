@@ -129,26 +129,39 @@ Use **`/speckit.tasks`** to create an actionable task list from your implementat
 
 ### 6. Execute implementation
 
-Use **`/speckit.implement`** to execute all tasks and build your feature according to the plan.
+Use **`/speckit.implement`** to run implementation **one task at a time**. Each invocation picks the next unchecked Task ID from `tasks.md` unless you pass a specific ID.
 
 ```bash
-/speckit.implement
+/speckit.implement           # auto-picks the next unchecked T###
+/speckit.implement T123      # optional: force a specific task
 ```
+
+Every run delegates that single task to the implementor sub-agent, collects its JSON log, and prepares the same Task ID for code review.
 
 > **Codex setup reminder**  
 > `specify init --ai codex` now rewrites `.codex/config.toml` so the Codex CLI launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override via `CODEX_SUBAGENTS_REPO`) and passes `--agents-dir <project>/agents`, exactly as required by the codex-subagents README. During init, you’ll be prompted once per machine to run `.codex/scripts/bootstrap-subagents.{sh,ps1}`; rerun the script manually with `--force` after pulling codex-subagents updates or whenever you skip the automatic install.
 
 > **Codex orchestrator entry point**  
 > Route all Codex CLI work through the orchestrator persona located at `agents/orchestrator.md` so the Spec Kit gates stay intact:  
-> `tools.call name=subagents.delegate agent="orchestrator" task="<goal or /speckit.* command>" cwd="<repo>" mirror_repo=true`  
-> The orchestrator will load the correct template, ask clarifying questions, and delegate to the `research`, `implementor`, and `review` agents at the right checkpoints.
+> `tools.call name=subagents.delegate agent="orchestrator" task="<goal or /speckit.* command>" cwd="<worktree path>" mirror_repo=false`  
+> Always create a dedicated git worktree before delegating—for example:
+> ```bash
+> FEATURE=payments-onboarding
+> WORKTREE=.codex/worktrees/orchestrator-$FEATURE
+> rm -rf "$WORKTREE"
+> git worktree add "$WORKTREE" HEAD
+> ```
+> Pass `cwd="$WORKTREE"` to the orchestrator call and remove it afterward (`git worktree remove "$WORKTREE"`). Once inside the orchestrator session, it will chain the `research`, `implementor`, and `review` delegates (via `subagents.delegate`) using their own worktrees.
+
+> **Pinning codex-subagents releases**  
+> `.codex/scripts/bootstrap-subagents.{sh,ps1}` accepts `CODEX_SUBAGENTS_REPO` to override the checkout location and `CODEX_SUBAGENTS_REPO_REF` to pin a specific release/tag. Rerun the script with `--force` whenever you need to pull the latest upstream tag before testing.
 
 ### 7. Run the mandatory code review
 
-Immediately after implementation, run **`/speckit.review`** to delegate code review to the dedicated review sub-agent before merging or deploying.
+Immediately after each task-level implementation run, use **`/speckit.review`** to validate the exact same Task ID before moving on. The orchestrator launches this automatically, but you can rerun it manually at any time.
 
 ```bash
-/speckit.review
+/speckit.review T123
 ```
 
 For detailed step-by-step instructions, see our [comprehensive guide](./spec-driven.md).
@@ -258,8 +271,8 @@ Essential commands for the Spec-Driven Development workflow:
 | `/speckit.specify`       | Define what you want to build (requirements and user stories)        |
 | `/speckit.plan`          | Create technical implementation plans with your chosen tech stack     |
 | `/speckit.tasks`         | Generate actionable task lists for implementation                     |
-| `/speckit.implement`     | Execute all tasks to build the feature according to the plan         |
-| `/speckit.review`        | Run the findings-first review sub-agent before merge/deploy          |
+| `/speckit.implement`     | Delegate one Task ID per run (rerun until every task is complete)    |
+| `/speckit.review`        | Findings-first review for the completed Task ID (auto or manual)     |
 
 #### Optional Commands
 
@@ -607,20 +620,21 @@ The generated tasks.md provides a clear roadmap for the `/speckit.implement` com
 
 ### **STEP 7:** Implementation
 
-Once ready, use the `/speckit.implement` command to execute your implementation plan:
+Once ready, use the `/speckit.implement` command to run implementation **one Task ID at a time**. Omit the argument to grab the next unchecked task automatically, or pass a specific ID to force the selection:
 
 ```text
-/speckit.implement
+/speckit.implement           # auto-picks the next unchecked T###
+/speckit.implement T123      # optional: force a specific task
 ```
 
 > **One-time Codex setup:** During `specify init --ai codex`, accept the optional bootstrap step (or run `.codex/scripts/bootstrap-subagents.{sh,ps1}` manually) so `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` exists locally and `.codex/config.toml` pins `--agents-dir <project>/agents`. Use `CODEX_SUBAGENTS_REPO` to override the install path and rerun the bootstrap script with `--force` after pulling upstream changes in the codex-subagents repo.
 
-The `/speckit.implement` command will:
-- Validate that all prerequisites are in place (constitution, spec, plan, and tasks)
-- Parse the task breakdown from `tasks.md`
-- Execute tasks in the correct order, respecting dependencies and parallel execution markers
-- Follow the TDD approach defined in your task plan
-- Provide progress updates and handle errors appropriately
+Each invocation of `/speckit.implement` will:
+- Validate that all prerequisites are in place (constitution, spec, plan, tasks) and that the target Task ID is unchecked.
+- Gather context for that single task (phase, `[P]` grouping, dependencies, file paths, validation commands).
+- Delegate the work to the implementor sub-agent, who follows the mandated TDD cycle and updates only the specified checkbox.
+- Emit task-level JSON logs (commands, timestamps, test evidence) so the reviewer can trace exactly what changed.
+- Hand the same Task ID off to `/speckit.review` automatically once implementation succeeds.
 
 >[!IMPORTANT]
 >The AI agent will execute local CLI commands (such as `dotnet`, `npm`, etc.) - make sure you have the required tools installed on your machine.
@@ -629,13 +643,13 @@ Once the implementation is complete, test the application and resolve any runtim
 
 ### **STEP 8:** Mandatory findings-first review
 
-Before merging or deploying, run the `/speckit.review` command to delegate the diff to the dedicated review sub-agent:
+Before merging or deploying—and before moving to the next task—run the `/speckit.review` command for the same Task ID (the orchestrator triggers this automatically, but you can rerun it manually whenever you want a fresh set of eyes):
 
 ```text
-/speckit.review
+/speckit.review T123
 ```
 
-This command packages the latest diff, spec/plan/tasks references, and testing status, then launches the read-only reviewer to:
+This command packages the diff, implementor JSON, spec/plan/tasks references, and testing status for that task, then launches the read-only reviewer to:
 
 - Produce a severity-ordered list of issues mapped to spec requirements and task IDs
 - Verify that tests and quality gates requested in plan/tasks actually ran
