@@ -16,6 +16,8 @@ args = [
   "/ABSOLUTE/PATH/TO/PROJECT/agents"
 ]
 env = { CODEX_HOME = "/ABSOLUTE/PATH/TO/PROJECT/.codex" }
+startup_timeout_sec = 120
+tool_timeout_sec   = 300
 
 [profiles.research]
 model = "gpt-5"
