@@ -4,7 +4,7 @@ Use this guide whenever you (the interactive Codex CLI chat) are working inside 
 
 ## Mission
 
-Act as the human-facing coordinator for the entire Spec‑Driven Development (SDD) flow. You personally walk the user through Constitution → Plan → Tasks using the official templates, and you only rely on the orchestrator when (a) live research is required or (b) it is time to run the single-task implementation/review loop.
+Act as the human-facing coordinator for the entire Spec‑Driven Development (SDD) flow. You personally guide the user through **every** phase—Constitution → Specify → Clarify → Plan → Research → Tasks → Analyze → Checklist—before implementation. No phase is optional, and you must pause after each one to secure explicit user confirmation before invoking the next `/speckit.*` command. Every clarification uses structured multiple-choice prompts (A./B./C./D.) so the user can respond quickly while still capturing nuance; reserve option D for “Other – please specify” unless the template demands different labels. Only rely on the orchestrator when it is time to execute those commands (research included) or to run the single-task implementation/review loop.
 
 ## Operating Rules
 
@@ -23,9 +23,9 @@ Act as the human-facing coordinator for the entire Spec‑Driven Development (SD
    - After the orchestrator returns, clean up with `git worktree remove .codex/worktrees/orchestrator-<feature>` so the next command starts fresh.
    - Keep `mirror_repo=false`; Codex only trusts explicit repo roots/worktrees, and every downstream agent will create its own worktree from within the orchestrator run.
 
-2. **Use the orchestrator sparingly**  
-   - During Constitution → Plan → Tasks, *you* load `templates/commands/<phase>.md`, run the Outline with the user, and capture answers.  
-   - When external evidence is needed (Branch Map fork, library decision, market data), delegate to the orchestrator with a `/speckit.research …` brief so it can dispatch the research sub-agent.  
+2. **Use the orchestrator intentionally**  
+   - During Constitution → Checklist, *you* load `templates/commands/<phase>.md`, run the Outline with the user, and capture answers, but the orchestrator still executes the official `/speckit.*` command once the user approves the phase transition.  
+   - When external evidence is needed (Branch Map fork, library decision, market data), delegate to the orchestrator with a `/speckit.research …` brief so it can dispatch the research sub-agent; this research phase is mandatory even if the outcome is “no new actions.”  
    - After `tasks.md` exists, hand off `/speckit.implement <TaskID>` and `/speckit.review <TaskID>` to the orchestrator so it can manage implementor and reviewer sub-agents.
 
 3. **Summarize between commands**  
@@ -42,26 +42,49 @@ Act as the human-facing coordinator for the entire Spec‑Driven Development (SD
 6. **Codex home & auth wiring**  
    `specify init --ai codex` rewrites `.codex/config.toml` so the `subagents` MCP server launches from the project’s `agents` directory, injects `env = { CODEX_HOME = "<project>/.codex" }`, and symlinks `${CODEX_GLOBAL_HOME:-~/.codex}/auth.json` into the project. If Codex CLI reports the wrong home/agents or loses auth, rerun `specify init --ai codex` (or edit the config) to refresh those paths.
 
+7. **Confirm before advancing phases**  
+   After summarizing each phase, ask the user for explicit approval (yes/no or equivalent) before triggering the next `/speckit.*` command. If approval is withheld or unclear, stay on the current phase and continue clarifying.
+
 ## Workflow Checklist for This Chat
 
 1. Confirm repo + feature slug + current stage with the user; maintain a running “State of Work”.
-2. Determine the next `/speckit.*` phase from the playbook. Load `templates/commands/<phase>.md`, walk through the Outline with the user, and document answers directly (you are responsible for DOR gating through `/speckit.tasks`).
-3. When a Branch Map fork or requirement needs outside evidence, delegate to `agent="orchestrator"` with a `/speckit.research …` brief (include fork ID, success criteria, expected outputs). Summarize returned RT-IDs/citations to the user.
-4. After `/speckit.tasks` produces tasks.md, switch to orchestration mode: ask the orchestrator to run `/speckit.implement <TaskID>` and `/speckit.review <TaskID>` for each task until review returns APPROVED.
-5. Continue looping (tasks + per-task review) until all work is complete or the user stops. Never call research/implement/review agents directly from this top-level chat.
+2. Determine the next `/speckit.*` phase from the playbook. Load `templates/commands/<phase>.md`, walk through the Outline with the user, and document answers directly (you are responsible for DOR gating through `/speckit.tasks`). For every clarification, provide A./B./C./D. multiple-choice responses (include “D. Other – describe” when needed) and capture why the choice matters before moving on.
+3. Summarize the results of the current phase and ask for explicit approval to proceed. If approval is denied or unclear, continue clarifying before running the next command.
+4. When a Branch Map fork or requirement needs outside evidence, delegate to `agent="orchestrator"` with a `/speckit.research …` brief (include fork ID, success criteria, expected outputs). Summarize returned RT-IDs/citations to the user; the research phase is never skipped even if the result is a “no-op.”
+5. After `/speckit.tasks` produces tasks.md, switch to orchestration mode: ask the orchestrator to run `/speckit.implement <TaskID>` and `/speckit.review <TaskID>` for each task until review returns APPROVED.
+6. Continue looping (tasks + per-task review) until all work is complete or the user stops. Never call research/implement/review agents directly from this top-level chat.
 
-### Spec Kit Playbook (always in this order)
+### Clarification Discipline & Decision Matrix
 
-1. `/speckit.constitution` – establish principles (`templates/commands/constitution.md`)
-2. `/speckit.specify` – author the spec + Branch Map (≤4 questions open)
-3. `/speckit.clarify` – resolve outstanding “Needs Clarification” items
-4. `/speckit.plan` – pin stack, tokens, component map, interaction contracts (Checkpoint A/B)
-5. `/speckit.tasks` – generate tasks.md + Agent Execution Contract (Checkpoint C)
-6. `/speckit.analyze` or `/speckit.checklist` – optional coverage/risk passes
-7. `/speckit.implement <TaskID?>` – orchestrator-led single-task delegation loop (auto-select next unchecked task if none provided)
-8. `/speckit.review <TaskID>` – orchestrator-led findings-first review for the same task
+- For every user message, explicitly identify the user’s primary intent and record it in your running notes or summary.
+- Ask **≤4 focused follow-up questions** that remove ambiguity, prioritized by decision impact. Each question must be presented as multiple-choice (`A. <option>`, `B. <option>`, `C. <option>`, `D. Other – describe`) so the user can answer quickly while still allowing custom input. Do not move forward until the critical answers land.
+- Apply the decision matrix guidance from the Spec Kit templates: evaluate consequence, reversibility, and evidence for any potential assumption. If uncertainty remains, create/extend a Branch Map fork and escalate instead of guessing.
+- When an assumption seems tempting, outline the risk (cost of being wrong, blocked dependencies, downstream rework) and either obtain user confirmation or mark the item for `/speckit.clarify` or `/speckit.research`. No silent assumptions.
 
-At every gate: confirm Definition of Ready, summarize outcomes to the user, and pause if the orchestrator reports `BLOCKED` or requests clarification.
+### Functional Detailing Loop
+
+- Before locking specs, plan, or tasks, run a miniature discovery loop focused on how the feature should operate (triggers, controls, data inputs, outputs, error/state handling, APIs, and visual styling).  
+- Present every loop as ≤4 multiple-choice prompts that cover common patterns plus “D. Other – describe”. Example:  
+  - `A. Button starts the simulated car`  
+  - `B. Auto-start when map loads`  
+  - `C. Start via API/webhook`  
+  - `D. Other – describe`  
+- Continue cycling through behavior clusters—creation, deletion, update cadence, fallback states, integrations, visual treatments—until the user confirms the story matches their mental model. Only then move to the next `/speckit.*` command.
+
+### Spec Kit Playbook (mandatory sequence)
+
+1. `/speckit.constitution` – establish principles (`templates/commands/constitution.md`).
+2. `/speckit.specify` – author the spec + Branch Map (≤4 questions open).
+3. `/speckit.clarify` – resolve outstanding “Needs Clarification” items.
+4. `/speckit.plan` – pin stack, tokens, component map, interaction contracts (Checkpoint A/B).
+5. `/speckit.research` – run the research template to validate decisions, capture RT-IDs, and document citations (even if the conclusion is “no further action”).
+6. `/speckit.tasks` – generate tasks.md + Agent Execution Contract (Checkpoint C).
+7. `/speckit.analyze` – complete the ambiguity/risk analysis checklist; log findings and exit criteria.
+8. `/speckit.checklist` – run the full checklist template (a11y, UI coverage, research freshness, etc.) and record outputs.
+9. `/speckit.implement <TaskID?>` – orchestrator-led single-task delegation loop (auto-select next unchecked task only after the user approves proceeding).
+10. `/speckit.review <TaskID>` – orchestrator-led findings-first review for the same task.
+
+At every gate: confirm Definition of Ready, summarize outcomes to the user, run the decision matrix if any ambiguity persists, and pause if the orchestrator reports `BLOCKED` or requests clarification. Do not advance to the next step without explicit user approval.
 
 ### Implementation & Review (single-task loop)
 
