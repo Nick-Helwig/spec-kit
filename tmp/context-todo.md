@@ -4,9 +4,10 @@
 1. Spec command conflict — **RESOLVED** (2025-02-14): `/speckit.specify` & `templates/spec-template.md` enforce Branch Map + ≤4 question budget; no more auto-assumptions.
 2. Planning workflow auto-resolves uncertainties — **RESOLVED** (2025-02-14): `/speckit.plan` uses Checkpoints A/B, Branch Map snapshots, and approval gates captured in `plan.md`.
 3. Tasks generation lacks gating — **RESOLVED** (2025-02-14): `/speckit.tasks` now blocks on Plan/Spec DOR, Branch Map clarifications, and Checkpoint C before writing ultra-explicit tasks (mirrored in `tasks.md` template).
-4. Implementor escalation unclear — **RESOLVED** (2025-02-14): `agents/codex/agents.md` spells out BLOCKED workflow plus upstream command mapping.
+4. Implementor escalation unclear — **RESOLVED** (2025-02-14): `agents/orchestrator.md` (“Implementor Delegation Packet” + “Implementor Contract Snapshot”) spells out the BLOCKED workflow plus upstream command mapping.
 5. Implementation phase not enforcing checkpoints — **RESOLVED** (2025-02-14): `/speckit.implement` now runs `bash scripts/bash/lint-branchmap.sh <feature>` before touching code, ensuring plan/tasks artifacts include Branch Map + approvals.
-6. Codex multi-agent orchestration — **RESOLVED** (2025-02-15): `/speckit.plan`, `/speckit.implement`, and new `/speckit.review` templates now instruct the orchestrator to delegate to research (Perplexity), implementor, and review sub-agents; accompanying docs live in `AGENTS.md`, `agents/codex/agents.md`, and `agents/review.md`.
+6. Codex multi-agent orchestration — **RESOLVED** (2025-02-15): `/speckit.plan`, `/speckit.implement`, and `/speckit.review` templates now instruct the orchestrator to delegate to research (Perplexity), implementor, and two review sub-agents; accompanying docs live in `AGENTS.md`, `agents/orchestrator.md`, `agents/review-code.md`, and `agents/review-alignment.md`.
+7. Implementor/Reviewer skill integration — **RESOLVED** (2025-02-15): Embedded the obra/superpowers TDD cycle and error-handling patterns directly into `agents/orchestrator.md`, `agents/implementor.md`, `agents/review-code.md`, and the `/speckit.implement` + `/speckit.review` templates so every delegate enforces those practices.
 
 > **Status:** All known gaps are resolved. Add new items below if future work appears.
 

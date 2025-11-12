@@ -58,10 +58,17 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 3. **Generate and dispatch research agents**:
    ```
+   Before delegating, prepare a read-only worktree for research:
+   ```bash
+   WORKTREE=.codex/worktrees/research-$FEATURE_DIR
+   git worktree remove "$WORKTREE" 2>/dev/null || true
+   git worktree add "$WORKTREE" HEAD
+   ```
+   Reuse this path for all research delegates during this plan run and remove it afterward (`git worktree remove "$WORKTREE"`).
    For each high-impact fork or unknown:
      1. Draft a brief (fork ID, question, decision criteria, success metrics, RT-ID placeholder).
      2. Call `mcp__subagents__delegate` with `agent: "research"` (Perplexity MCP backend) and include:
-        - `cwd`: repo root (read-only)
+        - `cwd`: `.codex/worktrees/research-$FEATURE_DIR`
         - `sandbox_mode`: "read-only"
         - `task`: the brief above plus required outputs (3–5 insights, citations, recommendation+confidence)
      3. Capture the sub-agent's citations, RT-IDs, and recommendation notes and paste them into `research.md`.
@@ -87,7 +94,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Fork/decision identifier
    - Current assumptions + blockers
    - Desired deliverables (insights list, pros/cons, recommendation, citations)
-3. Invoke `mcp__subagents__delegate` (`agent: "research"`, `mirror_repo: false`, `sandbox_mode: "read-only"`, `approval_policy: "on-request"`) so the Perplexity-backed agent can perform live web research.
+3. Invoke `mcp__subagents__delegate` (`agent: "research"`, `mirror_repo: false`, `sandbox_mode: "read-only"`, `approval_policy: "on-request"`) using the dedicated worktree (`cwd=.codex/worktrees/research-$FEATURE_DIR`) so the Perplexity-backed agent can perform live web research.
 4. Ensure the response includes:
    - RT-ID (traceable back to `research.md`)
    - 3–5 bullet insights tied to cited sources (≤6 months old where possible)

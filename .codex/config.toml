@@ -38,8 +38,15 @@ model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 
-[profiles.review]
+
+[profiles.review-code]
 model = "gpt-codex"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "read-only"
+
+[profiles.review-alignment]
+model = "gpt-5"
 model_reasoning_effort = "high"
 approval_policy = "on-request"
 sandbox_mode = "read-only"

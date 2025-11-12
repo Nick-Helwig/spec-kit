@@ -99,9 +99,11 @@ You **MUST** consider the user input before proceeding (if not empty).
      * Any residual risks or TODOs lifted by the implementor
      * Confirmation that only the delegated Task ID checkbox flipped to `[x]`; if other tasks changed, revert and re-run the implementor with clarified scope.
 
-9. **Mandatory review (per-task)**:
-   - Immediately run `/speckit.review` (template below) **or** delegate manually via `mcp__subagents__delegate` with `agent: "review"` using the same Task ID, current diff, spec/plan references, implementor JSON, and testing status.
-   - The review agent must return a findings-first report with severity-ranked issues scoped to that task, an explicit APPROVE/BLOCK verdict, and test coverage notes. Do not ship code until high/critical findings are resolved or waived in writing.
+9. **Mandatory review (per-task, two passes)**:
+   - Immediately run `/speckit.review` (template below) to trigger both review passes **or** delegate manually via `mcp__subagents__delegate` twice using the same Task ID and artifacts:
+     * First: `agent: "review-code"` for senior-dev code review
+     * Second: `agent: "review-alignment"` for Spec Kit alignment and gates
+   - Each review must return a findings-first report with severity-ranked issues scoped to that task and an explicit APPROVED/BLOCK/CHANGES REQUESTED verdict. Do not ship code until both reviews pass or blocking findings are explicitly waived.
 
 10. **Report**:
     - Present the selected Task ID, implementor summary, review findings, outstanding risks, and recommended next steps (e.g., rerun `/speckit.tasks` for new scope, deploy, etc.).

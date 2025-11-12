@@ -364,6 +364,18 @@ Commands map to templates and DOR gates:
 - Build a Design Reference Gallery (8–15 examples) starting with: Linear, Stripe, Figma; allow visual variation while enforcing a11y and performance budgets.
 - Maintain Evidence‑to‑Decision mapping (RT‑IDs) and pin final decisions in Plan.
 
+#### Perplexity Quick‑Checks (Conversational)
+- When the main Codex chat is uncertain or stuck during conversation, call `mcp__perplexity__perplexity_search` with a concise brief (2–3 sentences) that includes: the fork/uncertainty, a precise question, and success criteria. Expect 3–5 actionable insights with citations (URLs + publication dates) and a short recommendation.
+- Summarize results back to the user and confirm next steps. This complements—not replaces—the mandatory `/speckit.research` phase used to formalize evidence at gates and for high‑impact decisions.
+
+Quick Brief Template:
+
+```
+Brief: <fork/uncertainty>.
+Question: <what you need to know now>.
+Success criteria: 3–5 actionable insights with citations (URLs + dates) and a short recommendation.
+```
+
 #### Delegated Research (Perplexity MCP)
 - Use the Perplexity MCP server (`mcp__perplexity__perplexity_search`) for every high-impact Branch Map fork that requires external data.
 - Wrap each query in a short brief (fork ID, question, success criteria) and record RT-IDs plus citations in `research.md`.
@@ -392,9 +404,10 @@ Handoff: The implementor contract lives inside `agents/orchestrator.md` (see “
 |-------|---------|-------------------|------------------|
 | Research | Branch Map forks with open questions | `research` sub-agent (Perplexity MCP) | RT-IDs, citations, recommendation summary |
 | Implementation | Each `/speckit.implement` run (single Task ID) | `implementor` sub-agent (brief defined in `agents/orchestrator.md`) | Task-level JSON log + checkbox update |
-| Review | Immediately after each `/speckit.implement` run (same Task ID) or whenever a diff exists | `review` sub-agent (`agents/review.md`) | Findings-first report (issues ordered by severity) |
+| Review (code) | Immediately after each `/speckit.implement` run (same Task ID) | `review-code` sub-agent (`agents/review-code.md`) | Code findings-first report with verdict |
+| Review (alignment) | Immediately after code review for the same Task ID | `review-alignment` sub-agent (`agents/review-alignment.md`) | Spec Kit alignment + gates report with verdict |
 
-- Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and `agent: "review"` for mandatory code review. Each `/speckit.implement` run selects one unchecked Task ID (or the ID supplied via command input), and `/speckit.review <TaskID>` must immediately validate that exact change before moving to the next task.
+- Use `mcp__subagents__delegate` with `agent: "research"` for Perplexity-backed runs, `agent: "implementor"` for task execution, and then `agent: "review-code"` followed by `agent: "review-alignment"` for mandatory reviews. Each `/speckit.implement` run selects one unchecked Task ID (or the ID supplied via command input), and `/speckit.review <TaskID>` must immediately validate that exact change with both review passes before moving to the next task.
 - Each delegation must specify `cwd`, sandbox mode, approval policy, and **set `mirror_repo=false`**. Codex only trusts explicit repo roots, so create a dedicated git worktree for every sub-agent invocation (instructions below) and pass that path as `cwd`.
 - Conversation Codex thread remains the coordinator: summarize incoming artifacts, decide next command (`/speckit.*`), and surface review findings to the human before accepting changes.
 - When you run `specify init --ai codex`, the CLI rewrites `.codex/config.toml` so the `subagents` MCP server launches `~/.codex/subagents/codex-subagents-mcp/dist/codex-subagents.mcp.js` (override with `CODEX_SUBAGENTS_REPO`) **and** passes `--agents-dir <project>/agents` as required by the upstream server README. It also offers to run `.codex/scripts/bootstrap-subagents.{sh,ps1}` once per machine; rerun with `--force` after pulling codex-subagents updates.
@@ -402,7 +415,8 @@ Handoff: The implementor contract lives inside `agents/orchestrator.md` (see “
   - `agents/orchestrator.md` — entry point; runs `/speckit.*` commands, delegates research / implementor / review agents, enforces checkpoints.
   - `agents/research.md` — Perplexity-backed research delegate.
   - `agents/implementor.md` — executes `tasks.md` under the Agent Execution Contract.
-  - `agents/review.md` — findings-first reviewer.
+  - `agents/review-code.md` — findings-first code reviewer.
+  - `agents/review-alignment.md` — Spec Kit alignment reviewer.
 - Run all work through the orchestrator from the Codex conversation:  
   `tools.call name=subagents.delegate agent="orchestrator" task="<goal>" cwd="<.codex/worktrees/orchestrator-$FEATURE>" mirror_repo=false`
 - The orchestrator persona is responsible for invoking the `research`, `implementor`, and `review` delegates at the required checkpoints—do not bypass it by calling those agents directly from the main conversation.
@@ -448,4 +462,4 @@ Bundle should include: specs/<feature>/* and (optionally) updated excerpts from 
 ### Starting and Handoff Prompts
 - Start: “/speckit.constitution …” then “/speckit.specify …”
 - Handoff: “/speckit.implement” to spawn the implementor sub‑agent following tasks.md under the Agent Execution Contract.
-- Close: “/speckit.review” (or manual delegate call) to run the review sub-agent once implementation tasks complete; block shipping until findings are resolved or explicitly waived.
+- Close: “/speckit.review” (or manual delegate calls) to run both review sub-agents once implementation for the Task ID completes; block shipping until findings are resolved or explicitly waived.

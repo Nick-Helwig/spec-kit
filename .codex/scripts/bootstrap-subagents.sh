@@ -7,6 +7,7 @@ NODE_BIN="${NODE_BIN:-node}"
 NPM_BIN="${NPM_BIN:-npm}"
 REPO_DIR="${CODEX_SUBAGENTS_REPO:-$HOME/.codex/subagents/codex-subagents-mcp}"
 REPO_URL="${CODEX_SUBAGENTS_REPO_URL:-https://github.com/leonardsellem/codex-subagents-mcp.git}"
+REPO_REF="${CODEX_SUBAGENTS_REPO_REF:-}"
 FORCE=0
 
 if [[ "${1:-}" == "--force" ]]; then
@@ -56,6 +57,49 @@ EOF
 }
 
 ensure_repo
+
+sync_repo() {
+  if [[ ! -d "$REPO_DIR/.git" ]]; then
+    return
+  fi
+
+  if ! command -v git >/dev/null 2>&1; then
+    echo "[codex-subagents] git is required to sync $REPO_DIR. Skipping git pull/checkout." >&2
+    return
+  fi
+
+  if [[ -n "$REPO_REF" ]]; then
+    echo "[codex-subagents] Checking out codex-subagents ref $REPO_REF"
+    if ! git -C "$REPO_DIR" fetch --tags --prune; then
+      echo "[codex-subagents] git fetch failed while preparing $REPO_REF." >&2
+      exit 1
+    fi
+    if ! git -C "$REPO_DIR" checkout "$REPO_REF"; then
+      echo "[codex-subagents] git checkout $REPO_REF failed. Ensure the ref exists or update CODEX_SUBAGENTS_REPO_REF." >&2
+      exit 1
+    fi
+    return
+  fi
+
+  if [[ $FORCE -eq 1 ]]; then
+    echo "[codex-subagents] Refreshing codex-subagents repo in $REPO_DIR"
+    if ! git -C "$REPO_DIR" fetch --tags --prune; then
+      echo "[codex-subagents] git fetch failed during refresh." >&2
+      exit 1
+    fi
+    current_branch="$(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+    if [[ -n "$current_branch" && "$current_branch" != "HEAD" ]]; then
+      if ! git -C "$REPO_DIR" pull --ff-only origin "$current_branch"; then
+        echo "[codex-subagents] git pull failed while refreshing $current_branch." >&2
+        exit 1
+      fi
+    else
+      echo "[codex-subagents] Repo is detached; set CODEX_SUBAGENTS_REPO_REF to pin a release." >&2
+    fi
+  fi
+}
+
+sync_repo
 
 if [[ $FORCE -eq 1 ]]; then
   rm -rf "$REPO_DIR/node_modules" "$REPO_DIR/dist"

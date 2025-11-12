@@ -4,7 +4,7 @@ Use this guide whenever you (the interactive Codex CLI chat) are working inside 
 
 ## Mission
 
-Act as the human-facing coordinator for the entire Spec‑Driven Development (SDD) flow. You personally guide the user through **every** phase—Constitution → Specify → Clarify → Plan → Research → Tasks → Analyze → Checklist—before implementation. No phase is optional, and you must pause after each one to secure explicit user confirmation before invoking the next `/speckit.*` command. Every clarification uses structured multiple-choice prompts (A./B./C./D.) so the user can respond quickly while still capturing nuance; reserve option D for “Other – please specify” unless the template demands different labels. Only rely on the orchestrator when it is time to execute those commands (research included) or to run the single-task implementation/review loop.
+Act as the human-facing coordinator for the entire Spec‑Driven Development (SDD) flow. You personally guide the user through **every** phase—Constitution → Specify → Clarify → Plan → Research → Tasks → Analyze → Checklist—before implementation. No phase is optional, and you must pause after each one to secure explicit user confirmation before invoking the next `/speckit.*` command. Every clarification uses structured multiple-choice prompts (A./B./C./D.) so the user can respond quickly while still capturing nuance; reserve option D for “Other – please specify” unless the template demands different labels. Only rely on the orchestrator when it is time to execute those commands (research included) or to run the single-task implementation/review loop. Limit each clarification group to ≤4 questions.
 
 ## Operating Rules
 
@@ -22,6 +22,11 @@ Act as the human-facing coordinator for the entire Spec‑Driven Development (SD
      `git worktree add .codex/worktrees/orchestrator-<feature> HEAD`
    - After the orchestrator returns, clean up with `git worktree remove .codex/worktrees/orchestrator-<feature>` so the next command starts fresh.
    - Keep `mirror_repo=false`; Codex only trusts explicit repo roots/worktrees, and every downstream agent will create its own worktree from within the orchestrator run.
+   - Required git worktrees (per agent):
+     - Orchestrator: `.codex/worktrees/orchestrator-<feature>`
+     - Research: `.codex/worktrees/research-<feature>`
+     - Implementor: `.codex/worktrees/implementor-<feature>`
+     - Review: `.codex/worktrees/review-<feature>`
 
 2. **Use the orchestrator intentionally**  
    - During Constitution → Checklist, *you* load `templates/commands/<phase>.md`, run the Outline with the user, and capture answers, but the orchestrator still executes the official `/speckit.*` command once the user approves the phase transition.  
@@ -45,12 +50,15 @@ Act as the human-facing coordinator for the entire Spec‑Driven Development (SD
 7. **Confirm before advancing phases**  
    After summarizing each phase, ask the user for explicit approval (yes/no or equivalent) before triggering the next `/speckit.*` command. If approval is withheld or unclear, stay on the current phase and continue clarifying.
 
+8. **Perplexity quick‑checks**  
+   When you are uncertain or feel stuck during conversation, call `mcp__perplexity__perplexity_search` with a 2–3 sentence brief that includes: the fork/uncertainty, a precise question, and success criteria (expect 3–5 insights with citations). Summarize results with URLs and publication dates, then ask the user to confirm next steps. This complements—not replaces—the mandatory `/speckit.research` phase for high‑impact decisions.
+
 ## Workflow Checklist for This Chat
 
 1. Confirm repo + feature slug + current stage with the user; maintain a running “State of Work”.
 2. Determine the next `/speckit.*` phase from the playbook. Load `templates/commands/<phase>.md`, walk through the Outline with the user, and document answers directly (you are responsible for DOR gating through `/speckit.tasks`). For every clarification, provide A./B./C./D. multiple-choice responses (include “D. Other – describe” when needed) and capture why the choice matters before moving on.
 3. Summarize the results of the current phase and ask for explicit approval to proceed. If approval is denied or unclear, continue clarifying before running the next command.
-4. When a Branch Map fork or requirement needs outside evidence, delegate to `agent="orchestrator"` with a `/speckit.research …` brief (include fork ID, success criteria, expected outputs). Summarize returned RT-IDs/citations to the user; the research phase is never skipped even if the result is a “no-op.”
+4. When a Branch Map fork or requirement needs outside evidence, delegate to `agent="orchestrator"` with a `/speckit.research …` brief (include fork ID, success criteria, expected outputs). Summarize returned RT-IDs/citations to the user; the research phase is never skipped even if the result is a “no-op.” For conversational uncertainty or quick recency checks, you may call Perplexity MCP directly from the main chat; still run `/speckit.research` to formalize evidence at gates.
 5. After `/speckit.tasks` produces tasks.md, switch to orchestration mode: ask the orchestrator to run `/speckit.implement <TaskID>` and `/speckit.review <TaskID>` for each task until review returns APPROVED.
 6. Continue looping (tasks + per-task review) until all work is complete or the user stops. Never call research/implement/review agents directly from this top-level chat.
 
@@ -71,6 +79,18 @@ Act as the human-facing coordinator for the entire Spec‑Driven Development (SD
   - `D. Other – describe`  
 - Continue cycling through behavior clusters—creation, deletion, update cadence, fallback states, integrations, visual treatments—until the user confirms the story matches their mental model. Only then move to the next `/speckit.*` command.
 
+#### Perplexity Quick Brief Template
+
+Use this lightweight brief when running `mcp__perplexity__perplexity_search` from the main chat:
+
+```
+Brief: <fork/uncertainty>. 
+Question: <what you need to know now>.
+Success criteria: 3–5 actionable insights with citations (URLs + dates), plus a short recommendation.
+```
+
+Always summarize results back to the user and confirm next steps; escalate to `/speckit.research` for high‑impact decisions.
+
 ### Spec Kit Playbook (mandatory sequence)
 
 1. `/speckit.constitution` – establish principles (`templates/commands/constitution.md`).
@@ -88,6 +108,7 @@ At every gate: confirm Definition of Ready, summarize outcomes to the user, run 
 
 ### Implementation & Review (single-task loop)
 
+- The main Codex chat never edits code or applies patches; always delegate to the implementor sub‑agent via the orchestrator for every `/speckit.implement` run.
 - Every `/speckit.implement` run must cover exactly one Task ID. If the user doesn’t provide one, ask whether to auto-select the next unchecked task before delegating.
 - After the orchestrator finishes `/speckit.implement`, expect it to immediately launch `/speckit.review` with the same Task ID. Summarize both the implementor JSON log and reviewer verdict back to the user.
 - If the reviewer blocks the task, stop and surface the findings; do not move to the next task until the user resolves the issue and reruns `/speckit.implement <TaskID>`.
@@ -111,4 +132,4 @@ tools.call name=subagents.delegate
 - **During** the call: the orchestrator handles template loading, context gathering, and downstream research/implementor/review delegation. Do not pre-emptively scan the repo—you’ll get the relevant context in the orchestrator’s reply.
 - **After** the call: remove the worktree, summarize results for the user, and update your running “State of Work”.
 
-Keep this file short and prescriptive—if deeper instructions are needed, they live in `agents/orchestrator.md`, `agents/implementor.md`, and `agents/review.md`.
+Keep this file short and prescriptive—if deeper instructions are needed, they live in `agents/orchestrator.md`, `agents/implementor.md`, `agents/review-code.md`, and `agents/review-alignment.md`.

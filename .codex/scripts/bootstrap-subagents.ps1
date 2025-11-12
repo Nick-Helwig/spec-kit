@@ -7,6 +7,7 @@ $nodeBin = if ($env:NODE_BIN) { $env:NODE_BIN } else { "node" }
 $npmBin = if ($env:NPM_BIN) { $env:NPM_BIN } else { "npm" }
 $repoDir = if ($env:CODEX_SUBAGENTS_REPO) { $env:CODEX_SUBAGENTS_REPO } else { Join-Path $HOME ".codex/subagents/codex-subagents-mcp" }
 $repoUrl = if ($env:CODEX_SUBAGENTS_REPO_URL) { $env:CODEX_SUBAGENTS_REPO_URL } else { "https://github.com/leonardsellem/codex-subagents-mcp.git" }
+$repoRef = if ($env:CODEX_SUBAGENTS_REPO_REF) { $env:CODEX_SUBAGENTS_REPO_REF } else { "" }
 $force = $false
 if ($args.Length -gt 0 -and $args[0] -eq "--force") {
     $force = $true
@@ -47,6 +48,50 @@ function Ensure-Repo {
 }
 
 Ensure-Repo
+
+function Sync-Repo {
+    if (-not (Test-Path (Join-Path $repoDir ".git"))) {
+        return
+    }
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-Warning "[codex-subagents] git is required to sync $repoDir. Skipping git pull/checkout."
+        return
+    }
+
+    if ($repoRef) {
+        Write-Host "[codex-subagents] Checking out codex-subagents ref $repoRef"
+        git -C $repoDir fetch --tags --prune | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "[codex-subagents] git fetch failed while preparing $repoRef."
+        }
+        git -C $repoDir checkout $repoRef | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "[codex-subagents] git checkout $repoRef failed. Ensure the ref exists or update CODEX_SUBAGENTS_REPO_REF."
+        }
+        return
+    }
+
+    if ($force) {
+        Write-Host "[codex-subagents] Refreshing codex-subagents repo in $repoDir"
+        git -C $repoDir fetch --tags --prune | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Error "[codex-subagents] git fetch failed during refresh."
+        }
+        $currentBranch = git -C $repoDir rev-parse --abbrev-ref HEAD
+        if ($LASTEXITCODE -eq 0 -and $currentBranch -ne "HEAD") {
+            git -C $repoDir pull --ff-only origin $currentBranch | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "[codex-subagents] git pull failed while refreshing $currentBranch."
+            }
+        }
+        else {
+            Write-Warning "[codex-subagents] Repo is detached; set CODEX_SUBAGENTS_REPO_REF to pin a release."
+        }
+    }
+}
+
+Sync-Repo
 
 if ($force) {
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $repoDir "node_modules")

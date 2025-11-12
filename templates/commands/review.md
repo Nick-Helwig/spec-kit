@@ -1,5 +1,5 @@
 ---
-description: Run a findings-first code review for a completed task using the dedicated review sub-agent immediately after implementation.
+description: Run findings-first reviews (code + Spec Kit alignment) for a completed task using the dedicated review sub-agents immediately after implementation.
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
   ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
@@ -49,15 +49,20 @@ You **MUST** consider the user input before proceeding (if not empty).
    ```
    Set `cwd` to this path when delegating, and remove it (`git worktree remove "$WORKTREE"`) after the reviewer returns.
 
-7. **Delegate to the review sub-agent**:
-   - Call `mcp__subagents__delegate` with:
-     * `agent`: `"review"`
+7. **Delegate to the review sub-agents (two passes)**:
+   - Pass the same Task ID, diff, implementor JSON/log, and spec/plan/tasks references to both delegates.
+   - First pass (code): call `mcp__subagents__delegate` with:
+     * `agent`: `"review-code"`
      * `cwd`: `.codex/worktrees/review-$FEATURE_DIR`
-     * `mirror_repo`: `false`
      * `sandbox_mode`: `"read-only"` (reviewers do not modify code)
      * `approval_policy`: `"on-request"`
-     * `task`: the review brief plus explicit reference to the expectations below, including the embedded **TDD** and **Error Handling Patterns** checks defined in `agents/review.md`, and the Task ID + implementor JSON/log for this run.
-   - Provide spec/plan/tasks file paths so the reviewer can cross-reference requirements and trace findings back to the Task ID.
+   - Second pass (alignment): recreate the same worktree and call `mcp__subagents__delegate` with:
+     * `agent`: `"review-alignment"`
+     * `cwd`: `.codex/worktrees/review-$FEATURE_DIR`
+     * `sandbox_mode`: `"read-only"`
+     * `approval_policy`: `"on-request"`
+   - Each delegate must return a severity-ranked findings report and an explicit APPROVED/BLOCK/CHANGES REQUESTED verdict. Block merge until blocking findings are resolved or explicitly waived.
+   - Provide spec/plan/tasks file paths so reviewers can cross-reference requirements and trace findings back to the Task ID.
 
 8. **Process review findings**:
    - If the reviewer returns BLOCKED/FAILED or reports Critical/High issues, stop and address them (or document waivers) before re-running `/speckit.implement` for that task.
@@ -68,7 +73,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Review Sub-Agent Expectations
 
-Include the following checklist inside the delegation brief:
+Embed the following expectations in your two-pass review brief (code first, then alignment):
 
 1. **Findings-first output**:
    - List issues ordered by severity (Critical, High, Medium, Low, Info) with file paths + line numbers.
